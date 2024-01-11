@@ -1,0 +1,1975 @@
+ejt !Page: 37
+sta ax
+ext amask
+spb untemp,3 !release temporary variable for use again
+lda xr01
+sbo
+sta xr01 !decrement number cellar counter for array
+lda nc,1 !load array _w + array tvpe from no
+trib: ext o37777 !trim to type bits
+cab rbit
+bru lodr1 !generate load for integer
+bru lodr1 !generate load for real
+lda *lda* !lda instruction for boolean loads
+setlod: sta load !load = load instruction
+lda ax !array indicator
+bnz
+bru 1,2 !load necessary for this argument
+lda nc,1
+ext amask !trim to address
+spb tempck,3 !check to see if variable is a temporary one
+spb untemp,3 !release temporary variable for use again
+sub tst
+ext amask !trim to address portion
+bru 1,2 !exit fetch
+
+lodr1: lda *fld* !fld instruction
+bru setlod
+
+rem !untemp makes available for use again a
+rem !temporary variable which has just been
+rem !reloaded into the ax
+
+untemp: stx xr00,3 !save exit from fetch
+sub tslo
+sra 1 !form number of temporary variable
+sta xr03
+lda lbit !a 1 at position 1
+sra 0,3 !shift to position of variable in tsflag
+ory tsflag !set available bit in tsflag for variable
+ldx xr00,3 !restore exit
+lda nc,1
+bru 1,3 !exit from untemp
+
+rem !     loadst  stores a load instruction and
+rem !also the previous temporary fst if necessary
+
+loadst: stx temp,2
+lda tst
+bnz
+spb write,2 !store temporary fst instruction
+lda ax
+bze
+bru ldst2 !load does not involve an array
+ldx pavail,2 !last used location
+add dtype !form stx
+ejt !Page: 38
+cab 0,2 !check for superfluous store-load
+bru *+2
+bru ldst3
+sub dtype !must be done
+spb write,2 !store index load for array call
+ldst1: lda xtag
+ory load !set index register tab in load inst
+ldst2: lda nc,1
+ext amask !trim to address
+add load !form load instruction
+spb write,2 !store load instruction
+ldx temp,2
+bru 1,2 !exit from loadst
+ldst3: lda pavail
+sbo
+sta pavail
+bru ldst1
+
+rem !check for temporary variable-also use at
+rem !derive.
+
+tempck: cab tslo
+bru 2,3
+bru 1,3
+cab tslf
+bru 1,3
+bru 1,3
+bru 2,3
+
+rem !loadun  generates a load of the last entry in
+rem !the number cellar.
+rem !enter in group 1, exit in group 0.
+
+loadun: sxg 0
+spb fetch,2 !fetch last entry in number cellar
+bnz
+spb loadst,2 !store load instruction if necessary
+ldz
+sta tst !turn temporary storage indicator off
+lda nc,1
+ext o37777
+sta type
+ldx xr12,3 !load exit from loadun
+bru 1,3 !exit from loadun
+
+
+rem !tieup  assigns a location in temporary
+rem !storage to the intermediate result just
+rem !compiled, stores the name of this temporary
+rem !variable in the number cellar, and sets the
+rem !temporary store instruction but does not
+rem !place this instruction in memory at the
+rem !present time.
+rem !
+rem !     each bit of tsflag corresponds to a
+ejt !Page: 39
+rem !temporary variable, a 1 in the bit position
+rem !meaning that that variable is available for
+rem !use and a 0 that the variable is being used.
+rem !enter in group 0
+rem !exit in group 1.
+
+tieup: lda tsflag
+nor 19 !find first one bit in flag for free variable
+sta tsflag !store temporarily
+ldx xr30 !contains l9 - length of shift
+bze
+bru er4 !all temporary variables are being used
+neg
+add d19 !form number of variable to use
+sta xr03
+sla 1
+add tslo !form identifier for variable
+sta temp
+add type
+sta nc,1 !store identifier in number cellar
+ext bmask !trim to boolean type bit
+bze
+bru stor1 !generate a fst for temporary variable
+lda *sta* !sta instruction for boolean variable
+tie1: add temp
+sta tst !tst = temporary store instruction
+lda tsflag
+ext lbit !erase available bit for variable used
+sra 0,3 !shift tsflag back into standard position
+sta tsflag !tsflag is now updated
+sxg 1
+ldx xr12,3 !load returns into xr12
+bru 1,2
+stor1: lda *fst* !fst instruction for real or integer types
+bru tie1
+nam !compilation of expressions - bridges [arith]
+ejt !Page: 40
+rem !the following bridges compile instructions
+rem !for operation and relation symbols using
+rem !loadgn as a subroutine and exiting to tieup.
+kplus: ldo !set flag to allow switching arguments
+spb loadgn,2
+add *fad* !add fad instruction to address of 2nd arg
+kaop: spb write,2 !store instruction for operation
+lda type
+cab rbit
+bru tieup !type is arithmetic
+bru er15 !boolean type in arithmetic expression
+bru tieup !arithmetic type
+
+kminus: ldz !order of arguments cannot switched
+spb loadgn,2
+add *fsu*
+bru kaop
+
+kumin: spb *+2,2 !set up exit from loadun
+bru kumin1
+sxg 0
+spb fetch,2
+bze
+bru loadun+6 !already in ax
+spb stotst,3
+lda *cax*
+spb write,2
+lda *fsu*
+ory load
+spb loadst,2
+ldz
+sta tst
+lda nc,1
+ext o37777
+sta type
+bru kaop+1
+kumin1: lda *maqa*
+spb write,2
+lda aauchs !instruction to fmp by -1
+bru kaop
+
+kmult: ldz
+spb loadgn,2
+sta temp
+lda *maqa*
+spb write,2
+lda temp
+add *fmp*
+bru kaop
+
+kdiv: ldz !cannot switch order of arguments
+spb loadgn,2
+sta temp
+lda *cqx*
+ejt !Page: 41
+spb write,2 !store instructions to clear ax
+lda rbit
+ory type !type of divide is always real
+lda temp
+add *fdv*
+bru kaop
+
+ksidiv: dld sidspb !spb inst for special intgr divied + intert???
+dst opcall
+ldo !can switch order or arguments
+spb loadgn,2
+sta temp
+lda *maqa*
+spb write,2
+lda temp
+add *fld*
+spb write,2
+lda switch
+bpl
+bru *+3 !arguments in normal order
+lda *xaqa*
+rem !for subroutine calls, the first argument is
+rem !in dx and the second in ax
+spb write,2
+lda opcall+1
+sta type !set type of result
+lda opcall
+bru kaop
+
+kexp: dld powspb !spb in3 for power plus rbit
+bru ksidiv+1
+nam !compilation of expressions - bridges [rel]
+ejt !Page: 42
+rem !compilation of a relational operator causes
+rem !subtraction, then some testing.  for
+rem !a [rel] ?? the normal order for subtraction is
+rem !     fld a
+rem !     fsu b
+rem !
+rem !this is followed by ...
+rem !for = in either order
+rem !     ldz     [true]
+rem !     bar bnz,7
+rem !     lmo     [false]
+rem !
+rem !for /= in either order
+rem !     ldz
+rem !     bar bze,7p
+rem !     bar bze,7
+rem !     lmo
+rem !
+rem !for lt in regular order or gt in switched order
+rem !     ldz
+rem !     bar bpl,7
+rem !     lmo
+rem !
+rem !for lt in switched order or gt in regular order
+rem !     ldz
+rem !     bar bpl,7
+rem !     bar bze,7
+rem !     lmo
+rem !
+rem !for gte in regular order or lte in switched order
+rem !     lmo
+rem !     bar bpl,7
+rem !     bar bze,7
+rem !     ldz
+rem !
+rem !for lte in switched order or get in regular order
+rem !     ldz
+rem !     bar bmi,7
+rem !     lmo
+
+
+krel: lda retrel
+sta return !set return back to krel
+stx rexit,2 !save exit from krel
+ldo !permissable to switch order of arguments
+bru kminus+1
+rem !it later compiled as a relation between 0
+rem !and this difference.
+ejt !Page: 43
+krel1: sxg 0 !come back to here from return
+lda *ldz*
+spb write,2
+ldx rexit,2
+bru 1,2 !exit to compile particular relation
+
+kequal: spb krel,2 !compile first instructions of relation
+lda *bbnz*
+krel2: spb write,2
+lda *lmo*
+spb write,2
+lda nc,1
+ext amask
+add bbit
+sta nc,1
+lda tst
+ext *fld*
+sta tst !change tst to a boolean store
+sxg 1
+bru repeat
+
+kneq: spb krel,2 !start to compile not equal
+lda *bbze*
+bru krel2
+
+klt: lmo !here to compile less than
+bru *+2
+kgt: ldo !here to compile great than
+sta rtemp !indicator for sign of test
+spb krel,2
+lda switch
+maq
+mpy rtemp
+bpl
+bru krel3 !compile greater than in normal order or
+rem !     less than in switched order
+rem !
+rem !here to compile less than in normal order or
+rem !     greater than in switched order
+lda *bbpl* !bar bpl instruction
+bru krel2
+krel3: lda *bbpl*
+spb write,2
+bru kneq+1
+
+klte: lmo !here to compile less than or equal
+bru *+2
+kgte: ldo !here to compile greater than or equal
+sta rtemp
+spb krel,2
+lda switch
+maq
+mpy rtemp
+bmi
+ejt !Page: 44
+bru krel4 !compile less than or equal in normal order
+rem !     or gte in switched order
+
+rem !here to compile great than or equal in
+rem !     normal order of let in switched order
+lda *bbmi* !bar bmi instruction
+bru krel2
+krel4: ldx pavail,2
+lda *lmo*
+sta 0,2 !start with lmo
+lda *bbpl*
+spb write,2
+lda *bbze*
+spb write,2
+lda *ldz*
+bru krel2+2
+nam !compilation of expressions - bridges [bool]
+ejt !Page: 45
+rem !bridges for boolean operators....
+rem !
+rem !not        lda arg1
+rem !           cpl
+rem !
+rem !and        lda arg1
+rem !           bze
+rem !           lda arg2
+rem !
+rem !or         lda arg1
+rem !           bnz
+rem !           lda arg2
+rem !
+rem !equiv      lda arg1
+rem !           add arg2
+rem !           bev
+rem !           ldz
+rem !
+rem !imply      lda arg1
+rem !           cpl
+rem !           bnz
+rem !           lda arg2
+rem !        --  or  --
+rem !           lda arg2
+rem !           ext arg1
+
+knot: spb loadun,2
+lda *cpl* !cpl instruction to form logical negation
+kbop: spb write,2
+lda type
+cab bbit
+bru er15 !arithmetic type in boolean expression
+bru tieup !type ok
+bru er15 !arithmetic type in boolean expression
+
+kand: lda *bze* !bze instruction
+sta opcall
+ldo !can switch order of arguments
+spb loadgn,2
+sta temp
+lda opcall
+kimp2: spb write,2
+lda temp
+add *lda*
+bru kbop
+
+kor: lda *bnz*
+bru kand+1
+
+kequiv: ldo !can switch order of arguments
+spb loadgn,2
+ejt !Page: 46
+add *add*
+spb write,2
+lda *bev*
+spb write,2
+lda *ldz*
+bru kbop
+kimply: ldo !can switch order of arguments
+spb loadgn,2
+sta temp
+lda switch
+bmi
+bru kimp3 !switch order of arguments
+lda *cpl*
+spb write,2
+lda *bnz*
+bru kimp2
+kimp3: lda temp
+add *ext*
+bru kbop
+nam !assignments
+ejt !Page: 47
+rem !kassgn  compiles the assignment of the
+rem !value of an expression to the left part list
+rem !of variables, checking for types and rounding
+rem !if necessary.
+
+kassgn: spb assign,3 !generate one assignment
+lda xr01
+sbo
+sta xr01 !erase left part variable from number cellar
+sxg 1
+lda sc+1,1 !check to see if there are more variables in
+ext o100
+cab assid !     the left part list
+bru repeat !end of left part list
+bru *+2 !more variables in left part list
+bru repeat !end of left part list
+inx 1,1 !erase assignment from symbol cellar
+bru kass1 !compile next assignment
+
+rem !assign generates a single assignment
+rem !called by kassgn, kfor1
+rem !enter in group 1.
+
+assign: spb loadun,2 !generate load of value or expression
+lda xr01
+sbo
+sta xr01 !erase identifier for expression from nc
+sxg 1
+kass1: lda sc,1 !symbol causing assignment
+ext comask !check for formal parameter tag
+bze
+bru kass2 !not formal parameter
+lda sc+1,1 !*spb* to transfer thunk
+bpl
+spb write,2
+lda sc,1
+cab asid !check for colon-equals
+bru *+2 !it isnt
+inx 1,1 !it is -- erase extra word from sc
+ldx type
+cab rbit
+bru assi
+ldz !change real to integer
+bru assi
+rem !check to see if rounding necessary
+kass2: lda type
+cab rbit
+bru assi !type of expression is integer
+bru assr !type of expression is real
+assi: sta itemp !save type of expression
+spb loadun,2 !generate dummy load of left part variable
+lda type !type of variable
+ext rbit
+cab itemp !type of expression
+ejt !Page: 48
+bru er15 !mixed boolean and arithmetic types
+bru *+2
+bru er15 !mixed boolean and arithmetic types
+lda nc,1
+ext amask !trim to address
+cab conlf !check to make sure left-part variable is not
+bru fpck !an expression or a constant
+bru er18 !illegal left-part variable
+spb tempck,3
+bru er18 !illegal left-part variable
+fudst: ldx pavail,2
+lda sfudge
+ory 0,2 !fudge load to a store
+ldx xr13,2
+bru 1,2 !exit
+
+assr: sxg 0
+lda nc,1 !check to see if round is necessary
+ext amask
+bnz
+bru *+3 !left-part variable is readl - donot round
+lda rndspb
+spb write,2
+ldz
+sxg 1
+bru assi
+
+fpck: bnz
+bru er18 !illegal left-part variable
+bru fudst
+nam !compilatoin of array subscript expressions
+ejt !Page: 49
+rem !barray  initializes the compilation of a
+rem !subscript expression
+rem !     sc    1-10
+rem !     sc+1  loc of array info
+rem !     sc+2  number of subscripts
+rem !n.c. entry for an array points to the dope
+rem !vector
+rem !called by hbrack
+
+
+barray: lda xr11
+sub two
+cab xr01
+bru er4 !number cellar - symbol cellar full
+bru er4 !number cellar - symbol cellar full
+sta xr11 !update scc
+ldz
+sta dstat !reset declaration legal flag
+lda nc,2
+ext amask
+sta xr13 != location of array heading
+add two
+add sign !flag for first subscript
+sta sc,1
+lda 0,3 !number of subscripts
+sta sc+1,1
+bru setgr4 !store 1 in so
+
+rem !ksubsc  compiles the coding for the
+rem !evaluation of a subscript expression.
+rem !
+rem !constants are in the following order
+rem !     0  number of subscripts
+rem !     1  array lo
+rem !     2  ub-lb+1   [column length]
+rem !     3
+rem !     4  ub+1
+rem !     5
+rem !     .
+rem !     .
+rem !     .
+rem !
+rem !test consists of the following instructions
+rem !     spb tstsub,1
+rem !     oct [subscript bounds]
+
+ksubsc: lda sc+1,1 !subscript constant information
+sta opcall+1
+ext amask !trim to loc of subscripts
+sta opcall
+spb loadun,2 !generate load of subscriapt value
+lda type
+cab rbit
+ejt !Page: 50
+bru subint !subscript is an integer
+bru *+2 !subscript is real
+bru er19 !illegal subscript
+lda rndspb
+spb write,2 !round instruction to convert subscript
+subint: lda tstspb
+spb write,2
+lda opcall
+spb write,2
+lda opcall+1
+bmi
+bru subsc2 !skip next for first subscript
+lda xr01
+sbo
+sta xr01 !erase identifier for subscript from nc
+lda nc,1 !identifier for partial compuotation of ss
+cab rbit
+bru *+3
+bru er20 !nc out of whack
+bru er20 !nc out of whack
+add *fad*
+spb write,2 !add on previous computation
+subsc1: lda symb
+cab comid
+bru *+2
+bru mosub !more subscripts coming
+cab rbid
+bru er20 !illegal subscript expression
+bru fisub !final subscript
+bru er20 !illegal subscript expression
+subsc2: ldz
+sta type !set type of subscript = integer
+lda retsub
+sta return
+bru tieup !generate temporary storage for ss value
+subsc3: sxg 0 !return here from tieup
+ldz
+sta tst !set temporary storage inst to 0
+bru subsc1
+mosub: lda *maqa*
+spb write,2 !store instructions to mulp\tiply partial
+lda opcall !     computation by dimension of next
+add four !     subscript
+ldx xr11,2
+sta sc+1,2
+add *fmp*
+spb write,2
+lda nc,1
+add *fst*
+spb write,2 !store temporary computation
+ldx xr11,2
+lda sc+2
+sbo
+sta sc+2,2 !update count of number of subscripts
+ejt !Page: 51
+bze
+bru er21 !too many subscripts
+bru input
+fisub: lmo
+sta prev
+lda dnfspb
+spb write,2 !store instruction to unfloat subscript
+lda nc-1,1 !identifier for awway
+ext amask
+sta xr03
+ldx xr11,2
+lda sc+2,2 !get count of number of subscripts
+sbo
+bnz
+bru fpsub !errro or array a formal parameter
+fisub1: lda nc,1
+add *sta* !form instruction to store computed subscript
+spb write,2
+lda nc-1,1
+ext o17777 !trim to type
+add gr1 !add bit for subscriapted array
+ory nc,1 !set identifier for array
+ext ssbits !atrim to type of array
+add 1,3 !add array lo
+sta nc-1,1 !set second word of identifier
+sxg 1
+inx 3,1 !remove [ and pointers from sc
+bru input
+
+rem !check for formal parameter
+rem !first occurrence a = -[number-1]
+rem !subsequently     a = -1 at 5
+
+fpsub: add cbit !1 at 6
+bpl
+bru fpsub2 !error or first occurrence of formal parameter
+add cbit
+bnz
+bru er21 !wrong number of subscripts on format param
+fpsub1: lda nc-1,1
+ext amask
+add *add*
+ado !form inst. to add array lo to computed
+spb write,2 !     subscript
+lmo
+sta fpflag
+bru fisub1
+
+rem ! for first occurrence, set number
+rem ! to [[its proper value]-[1 at 5]]
+fpsub2: sub cbit
+cpl !a = number of subscripts
+bpl
+bze !test on non-positive
+ejt !Page: 52
+bru er21 !wrong number of subscripts
+sub rbit !set to minus to indicate referenced r.p.
+sta 0,3 !store in array heading
+bru fpsub1
+nam !conditional expressions and statements
+ejt !Page: 53
+rem !bif  determines whether an  if  belongs to
+rem !an expression or a statement
+rem !
+rem !bits 12 and 13 on the internal identifiers
+rem !for if, then, else, and left-parentheses
+rem !indicate the type involved
+rem !bit 12 and 13 both off     cond. statement
+rem !bit 12 on                  undetermined
+rem !bit 13 on                  expression
+rem !both on                    designational
+rem !
+rem !the if-=id in symb is given a tag and stored
+rem !in the symbol cellar
+
+bif: lda sc,1
+ext o700 !trim off flag bits
+cab begid !identifier for begin
+bru *+2
+bru bif5 !store if for conditional statement
+cab doid
+bru *+2
+bru bif5 !store if for conditional statement
+cab prcid
+bru *+2
+bru bif5 !store if for conditional statement
+cab thenid
+bru *+1
+bru er25 !illegal conditional
+ldx xr11,2
+bif0: cab elseid
+bru *+1
+bru bif1 ! type of if determined by type of else
+cab gotoid
+bru *+1
+bru bif3 !designational expression
+cab procid
+bru *+1
+bru bif4 !expression in procedure call
+cab parid
+bru *+1
+bru bif2 !expression enclosed in parehtheses
+cab thenid
+bru *+2
+bru bif1 !type of if determined by type of them
+lda ctag !here for conditional expression
+ory symb !set bit to indicate this on symb
+bru setgr4
+bif1: lda sc,1
+ext comask
+ory symb !set ctag on if = ctag on else
+bru setgr4
+bif2: inx 1,2 !decrement termporary symbol cellar counter
+lda sc,2 !look back one further to determine type of
+bru bif0
+ejt !Page: 54
+bif3: lda dctag !tag for designational conditional
+ory symb
+bru setgr4
+bif4: lda o200 !tag for expression of undetermined type
+ory symb
+bru setgr4
+bif5: ldz
+sta dstat
+lda xr01
+bnz
+bru er30
+bru setgr4
+
+rem !kif  compiles the test of the if clause result
+rem !     sc     then-id
+rem !     sc+1   address of bru in else-part
+rem !
+rem !in certain cases, the generation of the
+rem !boolean result can be eliminated, and a
+rem !direct test substituted
+
+kif: lda symb
+cab thenid
+bru er22 !then is missing
+bru *+2
+bru er22
+spb loadun,2 !generate load of boolean value
+lda type
+cab bbit
+bru er23 !type not boolean
+bru *+1
+ldx pavail,2
+lda 0,2 !previous instruction
+cab *lmo* !if relation or equiv, squeeze a little code
+bru *+2
+bru kif2 !yes
+cab *ldz*
+bru *+2 !no
+bru kif3 !yes
+kif1: lda *bmi*
+spb write,2 !store test for false
+lda *bru*
+spb write,2
+lda xr01
+sbo
+sta xr01 !erase boolean variable from number cellar
+sxg 1
+lda sc,1
+ext comask
+ory symb !set proper tag bits on symb
+lda pavail
+add amask
+sta sc,1 !save address of loc to fill in
+ejt !Page: 55
+bru stosc !store then in symbol cellar
+
+kif2: lda pavail
+sub three
+sta xr02
+lda *ldz* ! check for relational bridge
+cab 1,2
+bru *+2
+bru *+8
+cab 0,2
+bru *+7
+bru *+3
+inx 2,2 !no - just wipe out the *lmo*
+bru *+6
+lda 1,2 !yes - wipe out the *ldz* as well
+sta 0,2
+lda 2,2
+sta 1,2
+inx 1,2
+stx pavail,2
+bru kif1+2
+
+kif3: lda pavail
+sub three
+sta xr02
+lda *lmo*
+cab 1,2
+bru *+2
+bru *+8
+cab 0,2
+bru *+2
+bru *+3
+inx 2,2
+bru *+6
+lda 1,3
+sta 0,2
+lda 2,2
+sta 1,2
+inx 1,2
+stx pavail,2
+lda pavail
+add three
+add *bru*
+spb write,2
+bru kif1+2
+
+kthen: lda sc,1
+ext comask
+bnz
+bru kthen2 !compile coding for conditional expression
+ldx xr01
+bnz
+bru er30
+lda symb
+ejt !Page: 56
+cab elseid
+bru *+2
+bru kthen1 !has else-part
+cab scid
+bru *+2
+bru kelse1 !no else-part
+cab endid
+bru er25 !illegal conditional
+bru kelse1 !no else-part
+bru er25 !illegal conditiona
+
+rem !place branch around else-part.  fill address
+rem !in branch to else-part,
+rem !
+rem !     sc     else-id
+rem !     sc+1   address of bru
+
+kthen1: lda amask
+sta type
+lda *bru*
+spb write,2 !store bru around else part
+lda sc-1,1
+ext amask !trim to address of transfer to fill in
+sta xr12
+lda pavail
+add type
+sta sc-1,1 !save address of transfer to fill in
+ado
+sto 1,2 !fill in transfer to else part
+lda sc,1
+ext comask
+add symb
+sta sc,1 !replace symbol in cymbol cellar
+bru input
+rem !conditional expression
+kthen2: lda symb
+cab elseid
+bru er25 !illegal conditional expression
+bru *+2
+bru er25 !illegal conditional expression
+lda sc,1
+ext comask
+cab o200
+bru kthen3 !arithmetic expression
+bru kthen5 !type of expression undetermined
+kthen4: spb goto,3 !designational expression
+sxg 1
+bru kthen1
+rem !arithmetic expression
+kthen3: sxg 1
+spb loadun,2 !generate load of value of expression
+lda xr11
+sbo
+sta xr11
+ejt !Page: 57
+sxg 1
+bru kthen1+2
+
+kthen5: spb cond3,3 !determine type of expression
+bru kthen3 !arithmetic expression
+bru kthen4 !designational expression
+
+
+kelse: lda sc,1
+ext comask
+cab ctag
+bru kelse1 !conditional statement
+bru kelse3 !arithmetic expression
+cab dctag
+bru kelse6 !type undetermined
+bru kelse2 !designational expression
+kelse1: lda sc-1,1
+ext o17777
+cab amask
+bru er25 !mixed expression and statement
+bru *+2
+bru er25
+lda sc-1,1
+ext amask
+sta xr12
+lda pavail
+ado
+sto 0,2 !fill in transfer to end of statement
+inx 1,1 !erase else from symbol cellar
+bru repeat !end of conditional
+
+kelse2: spb goto,3 !generate bru
+lda xr31
+ado
+sto xr31
+lda detype !type for designational expression
+sta nc,1
+sxg 1
+bru kelse1
+
+kelse3: sxg 1
+inx 1,1 !erase else from sc
+spb loadun,2 !generate load of value of expression
+ldx xr11,3
+lda type
+cab rbit
+bru kelse5 !arithmetic type
+bru *+1 !it’s boolean
+lda sc,3 !type is boolean
+ext bmask
+bze
+bru er15 !mixed boolean and arithmetic types
+kelse4: lda sc,3
+ext amask
+ejt !Page: 58
+sta xr02
+lda pavail
+ado
+sto 0,2 !fill in transfer around else expression
+lda retrpt
+sta return
+bru tieup !generate temporary variable for result
+
+kelse5: lda sc,3
+ext o17777 !trim to type
+cab rbit
+bru kelse4 !type is integer
+bru *+2 !type is real
+bru er15 !mixed boolean and arithmetic types
+sta type !set type equal to real
+bru kelse4
+
+kelse6: spb cond3,3 !detemrine type of expression
+bru kelse3 !arithmetic
+bru kelse2 !designational
+
+cond3: ldx xr01,2
+lda nc,2
+ext o17777 !trim to type
+cab notype
+bru *+1
+bru cond4 !designational
+ext cbit
+cab lbit
+bru *+2
+bru cond4 !designational
+cab detype
+bru *+2
+bru cond4 !designational
+lda sc,1 !here for arithmetic
+sub ctag !change flag bit to bit for arithmetic exp
+sta sc,1
+bru 1,3
+cond4: lda ctag
+ory sc,1 !change flag to indicate designational exp.
+bru 2,3
+nam !for statements
+ejt !Page: 59
+rem !bfor  is called when symbol = for
+rem !  reserve
+rem !    nop
+rem !    stx 3,1
+
+bfor: lda *nop*
+spb write,2 !reserve location in case running variable
+lda pavail !     is an array
+sta foray != loc of transfer around subscript subroutine
+lda *stx1*
+spb write,2 !reserve one more location
+ldz
+sta forno != flag for first element in for list
+sta dstat !=non-declaration status
+lda xr11
+bnz
+bru er30 !trouble
+lda prev2
+spb *+3,2 !check for legal occurrence of for
+bru setgr4 !. . . can only follow begin, then, else, do or
+bru er45 !semicolon
+
+cab begin !check for legal occurrence of *for*
+bru *+2 !. . . can only follow begin, then else or
+bru 1,2
+cab thenid
+bru *+2
+bru 1,2
+cab elseid
+bru *+2
+bru 1,2
+cab doid
+bru *+2
+bru 1,2
+cab id1ch !colon-id
+bru *+2
+bru 1,2
+cab scid
+bru *+2
+bru 1,2
+cab begin
+bru *+2
+bru 1,2
+cab prcid
+bru 2,2!none of the above
+bru 1,2
+bru 2,2 !not one of the above
+
+rem !forass  is called when the assignment is read
+rem !in the for statement.  the id for colon-
+rem !equals is not put in sc.
+rem !fdmay, flab1, flab3 are set up
+rem !called by fassgn
+ejt !Page: 60
+forass:sxg 0
+stx flab4,1 !index in nc for running variable
+lda nc,1 !check running variable
+ext acmask
+cab ssbits
+bru *+2
+bru for2 !running variable is subscripted
+lda pavail
+sub two
+sta pavail !delete locations reserved - don’t need them
+ldz
+sta foray !set to indicate no array
+for1: lda pavail
+ado
+sta flab1 != first loc of computation of for list el
+bru input
+
+rem !running variable is an array . . . code thus
+rem !
+rem !         bru around      skip subsc routine
+rem !  subsc  stx around-1,1  subscript routine
+rem !         $$$             for running variable
+rem !         $$$
+rem !         $$$
+rem !         ldx around-1,1
+rem !         bru 1,1          return from routine
+rem !         bss 1            index temp
+rem !  around bss 0            continue program
+rem !
+!if the running variable is a formal parameter
+!the entry to the transfer routine is stored
+!with the -for- in the symbol cellar
+
+for2: ldx foray,3 !address of *bru around*
+lda pavail
+add three
+sto 1,3 !fill in index save at head of subroutine
+add *ldx1*
+spb write,2 !store index load for return from subroutine
+lda sexit !bru 1,1
+spb write,2 !store return from subscript subroutine
+spb write,2 !save location in which to store index
+lda pavail
+add *bru*
+ado
+sto 0,3 !plant transfer around subroutine
+lda nc-1,1 !check for formal parameter
+ext amask
+bnz
+bru for1 !it isnt
+lda xr11 !it is
+sbo
+sta xr11 !make room for transfer thunk
+sta xr03
+ejt !Page: 61
+lda sc+1,3
+add o100
+sta sc,3 !tag the -for-
+lda fpflag !spb to transfer routine
+sta sc+1,3
+bru for1
+
+rem !kfor is called when symb = comma, do, step,
+rem !  while
+rem !  it generates a call to the subscripting
+rem !  routine, if one was generated by forass,
+rem !  and an assignment to the running variable,
+
+
+kfor: lda foray
+bze !if running variable is simple, there is no
+bru kfor1 !  subscript computation.
+spb stotst,3
+lda foray
+ado
+add *spb1*
+spb write,2 !store call of subscript subroutine
+kfor1: spb assign,3 !generate assignment to running variable
+lda foray
+bze
+bru kfor2 !skip fudge for amrats
+inx 1,1 !put array id back in nc
+lda nc,1 !get back temporary storage loc
+ext amask
+sub tslo
+sra 1
+sta xr02
+lda lbit
+sra 0,2
+sta temp
+lda tsflag
+ext temp
+sta tsflag !fudge completed
+kfor2: lda symb
+cab comid
+bru *+2
+bru forel1 !simple for list element
+cab doid
+bru *+2
+bru forel2 !last for list element
+cab stepid
+bru *+2
+bru bstep !initiate step-until type element
+cab whilid
+bru er45 !illegal for statement
+bru kfor3 !store while in symbol cellar
+bru er45 !illegal for statement
+forel1: spb forgo,3 !store spb to loop of statement
+bru for1
+ejt !Page: 62
+forel2: spb forgo,3 !store spb to loop
+lda *bru*
+spb write,2 !save location for exit from for statement
+lda pavail
+sta flab3 != exit location
+bru dodo
+
+bstep: ldx xr11
+sbo
+sta xr11
+sta xr02
+lda pavail
+sta sc,2
+lda *bru*
+spb write,2 !save location to transfer around increment
+lda pavail !     computation
+sta flab1 != loc of transfer around increment subroutine
+lda *stx1*
+spb write,2 !save location ofr index save
+kfor3: sxg 1
+bru setgr4 !store step or while in symbol cellar
+ejt !Page: 63
+rem !forgo  stores spbs to the loop of the for
+rem !statement.  since the address of the for loop
+rem !is not known at the time, the first spb is
+rem !fudged and all later spb2 refer to it, i.e.
+rem !
+rem !         spb *+2,1
+rem !         spb *+2
+rem !  forno  bru iloop1
+rem !          .
+rem !          .
+rem !         spb forno,1
+rem !          .
+
+forgo: lda forno
+bze
+bru forgo1 !first for list element
+add *spb1*
+spb write,2 !store spb to loop
+bru 1,3
+forgo1: lda pavail
+add *spb1*
+add three
+spb write,2 !store spb *+2
+lda pavail
+add three
+add *bru*
+spb write,2 !store bru *+2
+lda *bru*
+spb write,2 !store bru to for loop
+lda pavail
+sta forno !set forno for later for list elements
+bru 1,3
+
+rem !kwhile  completes a while-type for list el
+rem !symb is comma or up
+rem !
+rem !         $$$             compute boolearn
+rem !         bmi
+rem !  flag3  bru [next elt]  false -- end
+rem !         spb forno,1     loop
+rem !         bru flab1       repeat this element
+
+kwhile: inx 1,1 !erase while-id from symbol cellar
+spb loadun,2 !generate load of boolean value
+lda type
+cab bbit
+bru er15 !wrong type
+bru *+2
+bru er15 !wrong type
+lda *bmi*
+spb write,2 !store test for end of loop
+lda *bru*
+ejt !Page: 64
+spb write,2 !store exit from loop
+lda xr01
+sbo
+sta xr01 !erase name of variable from nc
+lda pavail
+sta flab3 != exit from loop
+spb forgo,3 !store spb to loop
+ldx flab1
+add *bru*
+spb write,2 !store bru to loop again
+lda symb
+cab doid 
+bru *+2
+bru dodo
+cab comid
+bru er45 !illegal for statement
+bru *+2
+bru er45 !illegal for statement
+while1: ldx flab3,2
+lda pavail
+ado
+sto 0,2 !store transfer to next for list element
+sta flab1 !      computation
+bru input
+
+!kstep  compiles the increment portion of the
+!step-until type element
+!  kinc becomes its identifier .  if it is an
+!expression, punt=0, otherwise punt=1.
+!
+!         bru rndstp
+!  incr   stx fndstp-1 2
+!         $$$
+!         $$$              compute increment
+!         $$$
+!         ldx rndstr-1 2
+!         bru 1        1
+!         bss 1            index save
+!  rndstp bss 0            continue computation
+
+kstep: lda symb
+cab untid !until identifier
+bru er45 !illegal for statement
+bru *+2
+bru er45 !illegal for statement
+ldx xr01,3
+lda nc,3 !see if increment is a simple variable
+ext amask
+cab tslo
+bru step3 !it is
+bru *+5 !it isnt
+cab tslf
+bru *+3
+bru *+2
+ejt !Page: 65
+bru step3 !it is
+ldz
+sta punt !set punt to indicate increment is expression
+spb loadun,2 !generate load of increment
+lda type
+cab rbit
+bru *+3
+bru *+2
+bru er15 !boolean type in increment
+lda retstp !return to setp from tieup
+sta return
+bru tieup ! get temporary variable for increment
+rem !return here from tieup and set up a
+rem !subroutine to compute the increment
+step1: ldx xr01,3
+lda nc,3
+sta finc != identifier for increment
+lda tst
+spb write,2 !generate store of value of increment
+ldx flab1,3
+lda pavail
+add three
+sto 1,3 !fill in index save at head of subroutine
+add *ldx1*
+spb write,2 !store load index instruction
+lda sexit
+spb write,2 !store exit from increment subroutine
+spb write,2 !save location in which to store index
+lda flab1
+add *spb1*
+ado !store spb to compute increment on the
+spb write,2 !     first time through the loop
+ldz
+sta tst
+lda pavail
+sto 1,3 !store address around compilation of increment
+step2: ado
+sta flab2 !flab2 = first location of test for done
+lda xr01
+sbo
+sta xr01 !erase increment from number cellar
+inx 1,1
+bru read !replace step by until in symbol cellar
+
+rem !  increment is simple
+rem !punt = 1 if it is a variable
+rem !punt = 2 if it is a constant
+
+step3: lda nc,1
+sta finc != identifier for increment
+ext bmask
+bze
+bru *+3 !increment is variable
+lda two !increment is constant
+ejt !Page: 66
+bru *+2
+ldo
+sta punt !set punt to indicate simple increment
+lda sc+1,1 !reset pavail with old value
+sta pavail !get rid of loc reserved for long computation
+bru step2
+ejt !Page: 67
+rem !kuntil  completes the compilation of the
+rem !step-until tyupe for list element
+rem !symb is comma or db?????
+rem !
+rem ! 1   fld terminal value
+rem ! 2 [ ldx index    1 ]
+rem ! 3   fsu running variable
+rem ! 4   maq          a
+rem ! 5   fmp ifinc1
+rem ! 6   fst junk            **** 225 only
+rem ! 7   bar bmi      7
+rem ! 8   bru [next element]
+rem ! 9   spb [forno] 1
+rem !10 [ spb subsc ]
+rem !11   fld finc         or       spb inch,1
+rem !12 [ spb round   2 ]
+rem !13 [ ldx index   1 ]
+rem !14   fad running variable
+rem !15   fst running variable
+rem !16   bru iflab2]            test for done
+rem !
+rem !
+rem !lines 2, 10, 12, and 13 contain optional
+rem !instructions
+rem !
+rem !in addition, if the step is a constant,
+rem !lines 4 and 5 are deleted, and depending on
+rem !the value of the constant, the order of the
+rem !first three lines may be changed
+
+kuntil: inx 1,1 !erase until-id from symbol cellar
+lda one
+cab punt
+bru kuntil !constant increment
+bru *+1
+spb test,3
+lda *maqa* ![4]
+spb write,2
+lda finc !address of increment
+ext amask
+add *fmp* ![5]
+spb write,2 !generate multiply by sign of increment
+kunt2a: lda *bbmi* ![7]
+spb write,2 !store test for done
+lda *bru* ![8]
+spb write,2 !store exit from loop
+lda pavail
+sta flab3 != address of exit from loop
+kunt2b: spb forgo,3 ![9] geneerate spu to for loop
+lda foray
+bze
+bru kunt3 !skip next if running variable is simple
+lda foray
+ado
+add *spb1* ![10] for subscripted variable only
+ejt !Page: 68
+spb write,2 !generate call of subscript subroutine
+kunt3: lda punt
+bze
+bru kunt8 !increment is not a simple variable
+lda finc
+ext amask !trim to address of increment
+add *fld* ![11}
+kunt4: spb write,2 !generate instruction to get increment
+lda finc
+ext rmask
+bnz
+bru kunt10 !check to see if a round is necessary
+kunt5: lda foray
+bnz
+bru kunt9 !running variable is an array
+lda nc,1 !name of running variable
+ext amask
+add *fad* ![14]
+spb write,2 !generate add of running variable
+lda nc,1
+ext amask
+kunt6: add *fst* !generate store of running variable
+spb write,2 ![19]
+lda flab2
+add *bru* ![16]
+spb write,2 !generate bru back to test for done
+lda symb
+cab doid
+bru *+2
+bru dodo !end of for list
+cab comid
+bru er45 !illegal for statement
+bru while1 !more for list elements coming
+bru er34 !illegal for statement
+rem !running variable is subscripted
+kunt7: lda nc,1
+ext amask
+add *ldx1* ![2] generate an index load with the value of
+spb write,2 !     the subscript of the running variable
+lda nc-1,1
+ext amask
+add xtag
+bru kunt2 !goto generate load of running variable [3]
+rem !increment is an expression
+kunt8: lda flab1
+ado
+add *spb1* ![11] for spb to increment subroutine
+bru kunt4
+rem !running variable is subscripted
+kunt9: lda nc,1
+ext amask
+add *ldx1* ![13]
+spb write,2 !instruction to load subscript into xr
+lda nc-1,1
+ejt !Page: 69
+ext amask
+add *fad* ![14]
+add xtag
+spb write,2 !generate fad of running variable
+lda nc-1,1
+ext amask !a = address and tag for running variable
+bru kunt6 !generate store of running variable
+rem !increment is real
+kunt10: lda nc,1 !identifier for running variable
+ext rmask
+bnz
+bru kunt15 !running variable is real
+lda rndspb ![12]
+spb write,2 !generate round instruction
+bru kunt5 !return to normal sequence
+
+rem !tfst running variable for being formal
+rem !parameter
+
+kunt15: ldx xr11,2 !scc
+lda sc+1,2
+ext comask
+bze
+bru kunt5 !not tagged for f.p. control variable
+lda sc+2,2
+spb write,2 !write spb to transfer routine
+bru kunt5
+rem !increment is a constant
+kunt11: lda finc !increment identifier
+ext amask
+sta xr12
+z30 0,2 !load value of constant increment !!Really fld 0,2
+bar bmi,7
+bru kuntm !negative
+bar bnz,7
+bru kuntp !positive
+ldz
+sta flab3 !eliminate test for done
+bru kunt2b
+
+rem !increment is positive
+
+kuntp: spb test,3 !generate partial test
+bru kunt2a
+
+rem !increment is negative
+
+kuntm: spb stotst,3
+ldx flab4,3 !index in nc for running variable
+lda foray
+bnz
+bru kunt13 !get subscript for running variable
+lda nc,3
+ejt !Page: 70
+ext amask
+kunt12:add *fld*
+spb write,2
+spb loadun,2
+ldx pavail,2
+lda *fsu*
+ory 0,2
+lda rbit
+cab type
+bru er15
+bru *+1
+lda xr01
+sbo
+sta xr01
+bru kunt2a
+
+kunt13: lda nc,3
+ext amask
+add *ldx1*
+spb write,2
+lda nc-1,3
+ext amask
+add xtag
+bru kunt12
+rem !generate subtract sequence for test
+test: spb loadun,2
+lda rbit
+cab type
+bru er15 !not of arithmetic type
+bru *+1
+lda xr01
+sbo
+sta xr01 !erase variable from number cellar
+lda foray
+bnz
+bru kunt7  !running variable an array
+lda nc,1
+ext amask !trim to address of running variable
+kunt2: add *fsu* ![3]
+spb write,2 !store fsu of running variable
+ldx xr13,3
+bru 1,3
+ejt !Page: 71
+rem !dodo  completes the compilation of the for
+rem !list elements and initiates the compilation
+rem !of the loop of the for statement.
+rem !
+rem !the branch at forno is filled with the
+rem !  address of the loop.  the loop is bracketed
+rem !  by the instructions
+rem !         stx junk     1
+rem !         lda junk
+rem !         ado
+rem !         sto loopno
+rem !          .
+rem !          .
+rem !          .
+rem !  loopno bru [   ]
+rem !
+rem !symbol cellar upon entry
+rem !  sc    forid
+rem !  sc+1  [maybe spb to transfer routine]
+rem !
+rem !symbol cellar upon exit
+rem !  sc    do-id
+rem !  sc+1  address of *sto*
+rem !  sc+2  address of exit from for-list
+
+dodo: lda foray
+bze
+bru dodo1 !running variable is simple
+lda nc,1 !release temporary storage location used for
+ext amask !     subscript of running variable which
+spb untemp,3 !     was an array
+lda xr01
+sbo
+sta xr01 !erase second part of array identifier from
+dodo1: lda xr01
+sbo
+sta xr01 !erase running variable from nc
+sxg 1
+lda sc,1
+ext comask !check for f.p. control variable
+bnz
+inx 1,1 !erase tagged for-id
+lda flab3
+sta sc,1 !save address of exit from loop in sc
+lda forx1 !a    stx temp,1    instruction
+spb write,2
+ldx forno,3
+lda pavail
+sto 0,3 !store transfer to for loop
+lda forx2
+spb write,2 !store  lda temp  instruction
+lda *add*
+spb write,2
+ejt !Page: 72
+lda *sto*
+spb write,2 !generate instruction to set return from loop
+lda xr11
+sbo
+sta xr11 !increment symbol cellar counter
+lda pavail
+sta sc,1 !save address of  *sto*  instruction
+bru stosc !store do in symbol cellar
+
+rem !kdo  completes the compi8lation of the
+rem !for statement
+
+kdo: lda brufor
+spb write,2
+lda sc+1,1 !address of *sto*
+sta xr12
+lda pavail
+sto 0,2 !fill in address part of *sto*
+lda sc+2,1
+sta xr12
+lda pavail
+ado
+sto o,2 !store address of exit from loop
+inx 2,1 !erase labels from symbol cellar
+bru repeat !well, we made it
+frfrm: equ 1120
+nam !labels and gotos
+ejt !Page: 73
+rem !labels and gotos are compiled using the
+rem !subroutines  chain  and  define  to handle
+rem !identifiers which are called before they
+rem !are defined.
+
+klabel: lda *nop*
+spb write,2 !store nop to prevent uninterruptible loops
+lda lbit
+spb define,2 !define last entry in nc as a label
+ldz
+sta dstat !set declaration illegal
+bru input
+
+bgoto: ldz
+sta dstat
+bru setgr4
+
+kgoto: spb goto,3 !generate goto instruction
+sxg 1
+bru repeat
+
+rem !goto  is a subroutine called by kgoto and
+rem !during the compilation of designational
+rem !expressions and switch declarations.  exit
+rem ! is to *+1 if the last entry in the nc is not
+rem !a label, to *+2 if a goto was generated.
+
+goto: stx temp,3 !save exit
+sxg 0
+lda nc,1
+cab detype
+bru *+2
+bru goto1 !goto a designational expression
+lda *spb2* !this takes care of formal parameters
+spb write,2 !store *spb* to label
+lda lbit
+spb chain,2 !fill in proper adddress or add to chain
+bru goto2 !special check for goto de--formal param s
+goto1: lda xr01
+sbo
+sta xr01 !erase name of label from nc
+ldx temp,3
+bru 1,3 !exit from goto
+goto2: lda swtype
+spb chain,2
+bru er26 !really was bad
+bru goto1 !thats what it was
+
+
+rem !switchb initiates a switch call
+
+swtchb: lda swbid !identifier for switch bracket
+sta symb
+bru stosc
+ejt !Page: 74
+!kswtch compiles the switch call
+
+kswtch: lda symb
+cab rbid
+bru er12 !illegal subscriapt expression
+bru *+2
+bru er12
+spb loadun,2 !generate load of vbalue of subscript
+lda xr01
+sbo
+sta xr01 !erase identifier of subscript from nc
+lda type
+cab rbit
+bru *+5 !subscript is integral
+bru *+2 !subscript is real - round it
+bru er19 !error -- boolean subscript
+lda rndspb
+spb write,2 !spb to round routine
+lda declo
+bnz
+bru swtch2 !switch call within a declaration
+lda nc,1 !make sure the thing is a switch
+ext acmask
+sub swtype
+bnz er19 !another subscripted label
+
+lda *spb2*
+swtch1: spb write,2 !store transfer to switch heading
+lda swtype
+spb chain,2 !fill in address of transfer or add to chain
+bru er30 !number cellar out of stem
+lmo
+sta prev !set prev to indicate a variable
+lda detype !designational expression type
+sta nc,1
+sxg 1
+inx 1,1 !erase bracket from sc
+bru input
+swtch2: lda swldx
+spb write,2
+lda *bru*
+bru swtch1
+nam !procedures - general comments
+ejt !Page: 75
+rem !whami keeps track of certain synmtactic
+rem !elements to facilitate compiling procedure
+rem !declarations.
+rem !
+rem !20000 statements [body]
+rem !20001 declaration
+rem !20002 specification
+rem !20003 formal parameter list
+rem !
+rem !wham1 is interrogated by --
+rem !bproc1, dproc, sparen, ncpsto, kparam,
+rem !down, dreal, declar, kdata, da2, karray,
+rem !dswtch, dbegin, bswtch
+rem !
+rem !it is set by --
+rem !bproc2            to formal parameter
+rem !dproc             to specification
+rem !dproc2, spec2, start1, whosi, bswtch, down,
+rem !                  to body
+rem !dreal             to declaration
+rem !******************************************
+rem !the appearance of the word procedure causes
+rem !prcid to be put in the symbol cellar.  its
+rem !actual meaning there is determined by wham1.
+rem !
+rem !1 if whati=body, and symb=procedure, a
+rem !procedure declaration is beginning, and
+rem !bproc2 sets whami = e.p. list and puts prcid in
+rem !the sybols cellar.
+rem !
+rem !2 if whami=f.p. list and symb=semicolon,
+rem !whami is set to specification or body depend-
+rem !ing on whether or not there are any formal
+rem !parameters.
+rem !
+rem !3 if whami=specification, it will be set to
+rem !body when the correct number of formal para-
+rem !meters have been specified count is held in
+rem !noel.
+rem !
+rem !4 if whyami=body and the prcid in the symbols
+rem !cellar [put there in step 1] is being com-
+rem !piled by a semi-colon, the procedure declara-
+rem !tion is now over.
+ejt !Page: 76
+rem !strings are specified at dsthng.  the itable
+rem !entry is left as formal parameter, and its
+rem !address points to the thunk link where the
+rem !type -string- [1600000] is stored,
+!
+rem !on an appearance of a string parameter in the
+rem !body of a procedure, ncpsto is called, but
+rem !the test atncp4 leaves the formal parameter
+rem !type in the numbers cellar.
+rem !
+rem !at pparam, the existence of a formal param
+rem !appeating as an actual parameter is detected,
+rem !and the thunk is just a *bru* to the
+rem !appropriate thunk link.
+rem !
+rem !bquote uses -type- as a flag to indicate
+rem !whether a string is appearing in a call to
+rem !-print- or to a user-declared procedure.
+rem !in the latter case, the thunk consists of an
+rem !*spb* to the string routine and a return to
+rem !the calling procedure.
+rem !
+rem !kprint detects a string formal parameter and
+rem !compiles an *spb* to the thunk link.  the
+rem !string is then output by the coding set up
+rem !in the thunk by bquote.
+rem !
+rem !*********************************************
+rem !
+rem !data formal parameters are treated in the
+rem !same general way as strings once they are
+rem !specified.  their treatment is identical at
+rem !pparam and ncp4.  because of this similarity
+rem !test have been placed at prep and kinp2 to
+rem !ensure that the compiler will not confuse
+rem !strings and data
+nam !procedures - declarations, specifications
+ejt !Page: 77
+rem !bproc initializes a procedure declaration
+rem !    or specification.
+rem !called when symb=procedure
+rem !octal 46
+bproc: lda sc,1
+cab realid
+bru *+5
+bru bprocr !real procedure
+cab boolid
+bru bproci !integer procedure
+bru bprocb !boolean procedure
+cab begid
+bru *+2
+spb block,3
+lda wmask !non-function type procedure
+bru bproc1
+bproci: ldz
+bru bprocr+1
+bprocb: lda bbit
+bru bprocr+1
+bprocr:lda rbit
+add wmask
+add gr1 !form type for function
+inx 1,1 !erase specifier from sc
+bproc1: sta atype !set type
+ldx whami,2
+bru *+1,2
+bru bproc2 !procedure declaration
+bru bproc2 !function-type procedure declaration
+bru setgr4 !specification
+bru er33 !illegal declaration
+
+rem !initiate a procedure declaration
+rem !symbol cellar contents on exit...
+rem !     sc    procedure-id
+rem !     sc+1  pavail
+rem !     sc+2  tslo
+
+bproc2: lmo
+sta declo !inbibit storing line numbers in think lines
+lda dstat
+bze
+bru er32 !declaration illegal here
+lda pavail
+bev
+bru *+3
+lda *nop*
+spb write,2 !make sure pavail is even
+lda *bru*
+spb write,2 !store bru around procedure body
+lda atype
+ext wmask
+sra 8
+ory symb !add type as flag on procedure
+ejt !Page: 78
+cab o400
+bru *+5 !non-function
+bru *+1 !function type
+lda pavail
+add two
+sta pavail!reserve location for value of function
+lda xr11
+sub two
+sta xr11
+lda tslo !save lo of temporary storage
+sta sc+1,1
+lda pavail
+sta sc,1 !save add, of first location of procedure
+ado
+sta tslo !set new temporary storage
+add o37
+sta tslf
+sta pavail
+cab plf
+bru *+3
+bru *+1
+spb adjust,2 !check for storage available
+ldz
+sta noel != count of number of formal parameters
+lda three
+add xtag
+sta whami !set whami to formal parameter list
+lda prospb
+spb write,2 !generate spb to run-time linage
+spb write,2 !save loc, for address of exit
+bru setgr4
+ejt !Page: 79
+rem !dproc is executed whan a procedure-id in
+rem !    the symbol cellar is being compiled
+rem !this happens in a specification, at the end
+rem !of a formal parameter list, and when symb =
+rem !semicolon following the body of a declaration
+
+dproc: ldx whami,2
+bru *+1
+bru dproc3 !end of procedure declaration
+bru er33 !illegal procedure declaration
+bru specp !specify a procedure
+lda symb !end of formal parameter list
+cab scid
+bru er33 !illegal declaration
+bru *+2
+bru er33 !illegal declaration
+lda declo
+ado
+bnz
+bru er33 !something rotten in denmark
+sta declo
+lda noel
+bze
+bru dproc2 !no parameters
+lda xtag
+add two
+sta whami !set whami to specification
+dproc1: ldz
+spb write,2 !marker for end of think linkage
+bru input
+dproc2: lda xtag
+sta whami !set whami to bgody
+spb decpro,3 !declare procedure and enter block
+bru dproc1
+
+
+rem !end of procedure declaration . . .
+rem !exit block, terminating declaration
+
+
+dproc3: inx 1,1 !erase procedure-id from sc
+lda xr01
+bnz !check for extra junk in nc.
+bru er30
+spb unblok,3 !exit block created for procedure body
+lda o400 !functionj tag
+sta dstat
+ext sc+2,1
+bze
+bru dproc5 !function-type procedure
+lda sc,1 !location of *bru* around declaration
+sta xr13
+lda pavail
+add two

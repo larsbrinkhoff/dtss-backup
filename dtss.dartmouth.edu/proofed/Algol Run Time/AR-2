@@ -1,0 +1,2286 @@
+rddisk: lda rdblk+3
+bze
+bru *-2 !check for completion of last read
+bod !check for errors
+bru *+4
+sra 18
+bev
+bru *
+stx save*,1 !save return
+ldx dblock,3 !set pointer for write
+ldx veclo,1 !flag dope vector
+dld 2,1 !swap buffers
+xaq
+dst 2,1
+sta dblock
+xaq
+add four
+sta rdblk+1 !set for next read
+sta wrtblk+1
+ldx dblock,1
+ldz
+sta 1,1 !set write flag
+sta 2,1 !set atomic element pointer
+lda rdblk+4
+sta 0,1
+ado
+cab d40
+bru *+3 !more to go
+bru last !hes on his last shot
+bru runout !i told him once
+sta rdblk+4
+chs
+sta rdblk+2
+ldz
+sta rdblk+3
+lda 1,3
+bze
+bru swap !old buffer was not written
+lda 0,3 !pick up disk address
+chs
+sta wrtblk+2
+ldz
+sta wrtblk+3
+sta 1,3 !clear writeflag
+lda five !flag for disk operation
+spb 0,1
+dec wrtblk
+set pst
+lda wrtblk+3
+bze !writ for lacey
+bru *-2
+swap: lda five !flag for disk operation
+spb 0,1
+dec rdblk
+ejt !Page: 40
+set pst !do laceys work for him
+bru *+4 !fix up things
+
+last: ldz
+sta dskflg !set end of file
+bru swap-13
+ldx save*,1 !restore exit
+bru 1,1 !exit
+
+wrtdsk: equ rddisk
+
+setup: sxg 4 !when in doubt
+lda pavail
+add d68
+ext o77
+sub four
+lqa
+add d128
+dst junk !save them
+sub four
+sta veclo
+ldx veclo,1 !pointer to dope vector for file
+dld junk
+sta dblock
+dst 2,1
+dst xr42
+add d68 !check for storage exhausted
+cab vavail
+bru *+3
+bru er1
+bru er1
+lda d64 !!could be d64; see also *-5
+maq
+dst 2,2
+dst 2,3
+maq
+dst 0,2
+dst 0,3
+setup1: lda 3,1 !initial disk operation
+add four
+sta dskop+1
+ldo
+sta dkflg1
+ldz
+sta dskop+3
+sta rdblk+4
+chs
+sta dskop+2
+lda rdop
+sta dskop
+lda wrtop
+sta wrtblk
+ldx five
+spb 0,1
+ejt !Page: 41
+dec dskop
+set pst !do laceys work for him
+lmo
+sta dskflg !ste end of file off
+sxg 1
+spb rddisk,1 !start load of second buffer
+sxg 0
+bru 1,1
+nam !linked programs
+ejt !Page: 42
+link: bss 0
+lda dkflg1
+bnz
+spb wrtdsk,1 !write out disk buffer if necessary
+
+rem !scan input name
+lda o60 !preset to blanks
+maq
+sta cffa+2 !set to scearch for data file
+lda o60
+dst pout
+dst pout+2
+dst pout+4
+stx atemp,3 !save location of line number
+ldx zero,0 !word count
+ldx zero,3 !character count
+nxwrd: ldx zero,1 !shift control
+lda 1,2 !pick three characters from the name
+maq !and save in the q-reg
+sld 7,1
+ext chmask
+cab o77 !quit on a fill char.
+bru *+2
+bru fini
+sta pout,3 !otherwise cont. to build name
+sub star !look for an asterisk
+bnz inxt !if not process next char
+bxl 6,3 !if the asterisk is in the 7th position
+bru inxt !mark for a library search
+lda o10
+sta cffa+2
+bru fini
+inxt: inx 1,3 !increment pointer for next char
+inx 6,1
+bxl 18,1 !have we finished with the current word
+bru nxwrd+1 !no
+inx 1,2 !yes - get next work
+inx 1,0
+bxl 3,0 !only unpack 3 words
+bru nxwrd
+fini: spb pack,1 !now pack the name scanner
+dld pout
+dst cffa !and set up the call for file address
+lda ceof
+sta cffa+3
+
+rem !move call to fit output buffer
+
+lda dm5
+maq !set q to move 5 words
+set pbk
+ldx opoint,3
+fob: lda 3 !opoint - 5 must be in the same
+ejt !Page: 43
+add five
+ext o77 !disk record as opoint
+cab opoint
+bru fob1
+bru fob1
+lda fills !add fills until this is so
+sta outbuf,3
+inx 1,3
+bru fob
+fob1: lda 3 !move the call to tty buffer
+sta opoint
+ado !leave room for eot put by 235
+add oblo
+mov cffa !and make call for file address
+lda seven
+set pst
+spb exec,1
+
+rem !computer program parameters
+
+lda outbuf+2
+sra 17
+bev serr1 !bit 2 off means the file was not saved
+
+lda outbuf !get the reg. disk adrs.
+sta getpro+2
+lda outbuf+1
+sta length !change the length
+add rrf
+sta getpro
+ldz
+sta getpro+3
+lda darea
+sta getpro+1
+
+rem !read in program
+sxg 2
+lda c2
+spb exec,1
+dec getpro
+set pst !do laceys work for him
+sxg 0
+lda getpro+3 !wait for read complete
+bze
+bru *-2
+bev
+bru serr1
+lda three
+bru comcal !call compiler back
+serr1: ldx atemp,3
+bru endjob
+nam !trap routines
+ejt !Page: 44
+ovfl: stx trpsv,1
+ldz
+sta $ind
+spb $tring,1
+dec 3
+oct 374665 !!alf  CRov
+alf erf
+alf low
+trp: ldx xr03,3
+spb *erlin,1
+ldx trpsv,1
+fld maxpos
+dflo1: rin
+set trpmode
+bru 0,1
+dvck: stx trpsv,1
+ldz
+sta $ind
+spb $tring,1
+dec 6
+oct 372431 !!alf  CRdi
+alf vis
+alf ion
+alf  by
+alf  ze
+oct 0514677
+bru trp
+uflo: fld fzero
+bru dflo1
+nam !arithmetic subroutines
+ejt !Page: 45
+rem !round  converts a floating point number into
+rem !an integer in floating pont form
+rem !  called by assignment statements, subscripts
+
+round: fad .5
+set uflpoint
+fad bigzer
+cqx
+nox
+set nflpoint
+bru 1,2
+
+rem !unflot  converts a positive integer in
+rem !floating pont form to an integer in the a
+rem !register
+rem !  called in switch and array calls
+rem !and by kab
+
+unflot: fad .5
+set uflpoint
+fad bigzer
+fst junk
+lda junk
+cab bigzer
+bru er50
+bru *+2
+bru er50
+lda junk+1
+set nflpoint
+bru 1,2
+
+rem !entier computes the algol function entier
+rem ![greatest integer less than or equal to]
+
+entier: set uflpoint
+fad bigzer
+cqx
+nox
+set nflpoint
+bru 1,1
+
+rem !intchk  checks to see whether ax contains an
+rem !integer.  if it does, an instruction is
+rem !skipped on exit.  if the result is not an
+rem !integer, a normal return occurs.
+rem !  call by exp, power, intdiv, $print
+
+rem !*** warning . . . the contents of ax and qx
+rem !  must be saved ***
+
+intchk: stx ichkxr,2 !save exit
+fst ichk1
+dld ichk1
+bmi
+ejt !Page: 46
+bru 1,2 !integer cannot have negative exponent
+sra 11
+cab d30
+bru *+3
+bru *+2 !number larger than 2esp30 is not considered
+bru 1,2 !     an integer by intchk
+sta ichk1+1
+ldx ichk1+1,2
+lda ichk1
+sld 0,2 !shift out integral part
+ext epmask !mask off exponent part
+bnz
+bru ichkex !not an integer
+xaq
+ext sign !mask off sign of mantissa
+bnz
+bru ichkex !not an integer
+ldx ichkxr,2
+bru 2,2 !exit for integer
+ichkex: ldx ichkxr,2 !restore exit
+bru 1,2 !exit for non-integer
+
+rem !special integer divide [reverse slash on tty]
+rem !sign[qx/ax] * entier[abs[qx/ax]]
+
+intdiv: fst junk
+xaq ,a
+cqx !!?????
+fdv junk
+stx sidxr,1
+bar bmi,7
+bru *+4 !negative quotient
+spb entier,1 !truncate result
+ldx sidxr,1
+bru 1,1 !exit
+maq ,a
+fmp fmone !get absoulute value of quotient
+spb entier,1 !truncate
+maq ,a
+fmp fmone !restore sign
+ldx sidxr,1
+bru 1,1 !exit
+nam !output routines
+ejt !Page: 47
+rem !output routine conventions . . .
+rem !$ind is set to zero at the beginning of run
+rem !    time, and is stepped by one for every
+rem !    word that is output on any one line.
+rem !the standard ge routine bdca is used in
+rem !    upper memory, but is essentially
+rem !    unchanged.
+$print: stx prx3,3
+stx prx1,1
+fst bdcarg
+spb intchk,2
+bru prflt !not an integer . . .convert in floating form
+ldx one,3
+ldx bdcarg+1
+ldx o60,1 !space
+bpl
+bru pr2
+cax
+fsu bdcarg
+ldx o40,1 !minus sign
+fst bdcarg
+pr2: stx pout,1 !put sign in output
+set uflpoint
+fad bigzer
+fst bdcarg
+dld bdcarg
+ext epmask !mast off exponent
+dvd tent !separated as two integers at 19
+dst bdcarg
+bze
+bru pr6 !less than 100,000
+ldx zero,2
+maq
+pr3: ldx one,1 !integer is 0-
+pr4: ldz
+dvd tent,1 !get digit in a
+bze
+bru pr7 !didit is zero      if leading, supress
+sta pout,3 !put in otuput
+stx prxt,2
+lda prxt
+bev
+inx 1,2 !xr2 is odd if a non-zero digit preceeded
+inx 1,3 !buffer pointer
+pr5: inx 1,1 !count digits examined
+bxl 6,1
+bru pr4 !get next digit
+bxh 2,2
+bru pr8 !done
+lda bdcarg+1 !low-order half
+maq
+inx 2,2
+bru pr3
+pr6: ldx two,2 !process second half only
+ejt !Page: 48
+bru pr3
+pr7: sta pout,3 !put in output
+stx prxt,2
+lda prxt
+bod !do not inx if leading zero
+inx 1,3
+bru pr5
+pr8: bxh 2,3
+bru *+4
+ldz !place single zero for zero result
+sta pout,3
+inx 1,3
+lda o60 !trail two blanks
+sta pout,3
+sta pout+1,3
+inx 2,3
+sta pout,3 !trail two more
+sta pout+1,3
+stx junk,3 !save buffer pointer
+ldx zero,1 !pointer in pout
+set pbk
+ldx opoint,3
+pr9: lda pout,1 !transfer 3 characters to ooutput
+sla 6
+add pout+1,1
+sla 6
+add pout+2,1
+sta outbuf,3
+lda $ind !increment internal line pointer
+ado
+sta $ind
+inx 3,1
+inx 1,3
+stx prxt,1
+lda prxt
+sub junk
+bmi
+bru pr9 !get 3 more charachters
+stx opoint,3
+set pst
+ldx prx1,1
+ldx prx3,3
+set nflpoint
+bru 1,1
+
+rem !non-integer argument
+
+prflt: ldx zero,0 !exponent sign flag
+bar bmi,7
+bru bdc11 !negative mantissa
+ldx o60 !space for positive number
+bdc1: fst bdcarg
+sta pout !sign of number
+dld bdcarg
+ejt !Page: 49
+bpl
+bru bdc2 !positive exponent
+neg
+ldx one,0 !set exponent sign flag on
+bdc2: sra 11
+maq
+mpy expcvt !.30103 b0
+sta junk !p. tentative base 10 exponent
+bdc4: ldx zero,2 !set counter
+bdc5: inx 2,2
+bev !examine binary estimate of
+bru bdc6 !base 10 exponent bit by bit
+bxl 1,0 !apply power of 10 to bdcarg
+bru bdc9 !divide on positive exponent
+maq ,a !multiply on negative
+fmp ftent,2
+bdc6: sra 1
+bnz !scaling done
+bru bdc5 !not yet
+fst bdcarg
+dld bdcarg
+add exp3 !0014000  exponent 3
+dsu d.1 !.5
+bmi
+bru bdc10 !less than .1
+dld bdcarg
+dsu fone
+bpl
+bru bdc10 !greater than 1.
+lda junk !p
+bze
+sta 0 !sign of zero is space
+dld bdcarg
+sra 11
+neg
+sta 1 !apoaaaative exponent
+lda bdcarg
+sld 8
+srd 0,1 !fix mantissa radix point
+bov
+bru *+1
+dad roundr !round to six figures
+bov
+bru bdcovf !rounding up caused overflow
+bdc7: spb bindec+2,3 !get first digit
+sta pout+1
+ldx zero,2
+spb bindec,3 !get digit
+sta pout+3,2 !put in output string
+inx 1,2
+bxl 5,2
+bru bindec !go back for more
+lda junk
+bxh 1,0
+ejt !Page: 50
+neg
+ldx zero,0
+sbo
+sta junk
+bpl
+bru *+3
+ldx one,0
+neg
+maq
+dvd ten
+bze
+bru bdc8
+sta pout+11
+xaq
+sta pout+12
+bru out
+bdc8: xaq !left-justify one-digit exponent
+sta pout+11
+lda o60
+sta pout+12
+out: lda o33 !add period, exponent sign
+sta pout+2
+ldx o60
+sta pout+8
+bxh 1,0
+lda o40
+sta pout+10
+lda junk
+bze
+bru fform !use f format
+ado
+bmi
+bru ftst !check further on small exponent
+cab six
+bru fmove !f-format move decimal point
+bru fmove !f-format move decimal point
+eform: spb supres,2
+lda o60
+sta pout+13
+sta pout+14
+lda o53
+sta pout+9
+spb pack,1
+lda dm5
+bru outmov
+ejt !Page: 51
+rem !a number which is less than .1 is checked
+rem !to see if it can be shifted right and printed
+rem !in the f format without losing significance
+rem !by comparing the number of trailing zeroes
+rem !with the base 10 exponent.
+
+ftst: spb supres,2 !supress trailing zeroes and obtain count
+lda xr00 !number of trailing zeroes
+add junk !actual base 10 exponent
+ado
+bmi !can number be printed in f format
+bru eform+1 !not without loss of accuracy
+ldx five,3 !destination pointer
+lda junk
+add six
+sta xr02 !points to digit to move
+lda pout+1
+sta pout+2
+prtsm1: lda pout+2,2 !move one digit to the right
+sta pout+2,3
+lda xr03
+sbo
+sta xr03
+lda xr02
+sbo
+bmi
+bru prtsm2 !moving digits complete - now move zeroes
+sta xr02
+bru prtsm1
+prtsm2: ldz
+sta pout+2,3 !fill moved digits with zeroes
+lda xr03
+sbo
+bmi
+bru prtsm3 !transfers done .. reenter mainline
+sta xr03
+bru prtsm2
+prtsm3: lda o33 !period
+sta pout+1
+bru fform+1
+fmove: bnz
+bru *+6
+lda pout+1
+sta pout+2
+lda o33
+sta pout+1
+bru fform
+lda junk
+neg
+maq
+lda opout !dec pout+2
+mov pout+3 !move digits down to place point
+laq
+neg
+ejt !Page: 52
+sta 1 !length of move
+lda o33
+sta pout+2,1 !place decimal point
+
+rem !print in f format
+
+fform: spb supres,2
+spb pack,1
+lda blanks
+sta pout+3
+lda dm4
+outmov: lqa
+neg
+add $ind !update internal pointer
+sta $ind
+lda opoint
+add oblo
+set pbk
+mov pout !place results in output area
+xaq
+neg
+add opoint
+sta opoint
+set pst
+ldx prx1,1
+ldx prx3,3
+bru 1,1
+
+supres: ldx seven,1 !supress trailing zeroes
+ldx zero,0
+lda pout,1
+bnz
+bru 1,2 !non-zero     exit
+lda o60
+sta pout,1
+inx 1,3 !count up supressed digits
+lda 1
+sbo
+sta 1
+bru supres+2
+
+pack: ldx zero,2
+ldx zero,3
+lda pout,2
+sla 6
+add pout+1,2
+sla 6
+add pout+2,2
+sta pout,3
+inx 1,3
+inx 3,2
+bxl 5,3
+bru pack+2
+bru 1,1
+ejt !Page: 53
+bdc9: fdv ftent,2
+bru bdc6
+
+bdc10: ldo !not quqite . . . try one more
+add junk
+sta junk
+ldo
+bru bdc4
+
+bindec: dld bdcarg !get one decimal digit
+sld 4
+srd 1
+dst bdcarg
+srd 2
+dad bdcarg
+dst bdcarg
+maq
+sld 4
+bru 1,3
+
+bdcovf: ldz !overflor on rounding
+bxh 1,0
+lda dm2
+ado
+add junk
+sta junk
+bze
+sta 0
+dld do1a !.1+1 in last place
+bru bdc7
+
+bdc11: fst bdcarg
+cax
+fsu bdcarg
+lda o40
+bru bdc1
+ejt !Page: 54
+$crt: stx prx1,1
+set pbk
+ldx opoint,2
+lda crchar
+sta outbuf,2
+inx 1,2
+stx opoint,2
+ldz
+sta $ind
+lda opoint
+cab excend
+bru tab2+1
+bru *+1
+ldo
+spb 0,1
+ldx zero,2
+bru tab2
+
+$tab: stx prx1,1
+set pbk
+ldx opoint,2
+lda $ind
+maq
+dvd five
+sub five
+bpl
+bru $crt
+xaq
+bze
+bru tab2
+lda spaces
+sta outbuf,2
+inx 1,2
+lda $ind
+ado
+sta $ind
+bru $tab+4
+
+tab2: stx opoint,2
+ldx prx1,1
+set pst
+bru 1,1
+
+$hort: lda $ind
+sub d22
+bmi
+bru 1,1
+bru $crt
+ejt !Page: 55
+rem !string outputting routine.
+rem !   entered by an spb   ,1
+rem !   following the spr is a word
+rem !   giving the number of words
+rem !   in the string, then the string
+rem !   itself.
+rem !the routine will operate correctly
+rem !in any index group and exit to
+rem !the instruction following the string.
+rem !called by print statements, error messages.
+
+
+$tring: lda 1,1 !length of string
+stx junk,1
+add $ind
+sub d24
+bmi
+bru *+3 !room left on same line for string
+spb $crt,1
+ldx junk,1
+lda 1,1
+neg
+xaq !set for move
+lda junk
+add two !address of string
+add *mov*
+ldx xtag,1
+set pbk
+sta *+3,1
+lda opoint
+add oblo
+nop !filled with move instruction
+ldx junk,1
+lda 1,1
+add opoint
+sta opoint !adjust output pointer
+set pst
+lda $ind
+add 1,1 !adjust line pointer
+sta $ind
+lda junk !construct return adress
+add 1,1
+sta junk
+ldx junk,1
+bru 2,1
+nam !console debugging aid
+ejt !Page: 56
+loc 33750
+stx prog-1,1
+ldz
+rcs
+bmi
+bru *+18
+sta prog
+ldx prog,1
+lda 0,1
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+bru *-20
+ldx prog-1,1
+bru *
+nam !linkage for overlay number 1
+ejt !Page: 57
+
+rem !routine to position overlay for reading onto
+rem !disk.
+
+loc 5000
+disk2: ldz
+rcs
+bod
+bru move
+ton
+ldx zero,1
+typa: ldx zero,0
+lda mssg,1
+typ: bnn
+bru *-1
+san 6
+typ
+inx 1,0
+bxl 3,0
+bru typ
+inx 1,1
+bxl 6,1
+bru typa
+bnn
+bru *-1
+bru disk2
+move: wai
+bru *+3
+bru *
+kon
+dld diskc
+mov over
+lda loadc
+bru 1,2
+diskc: oct 31000
+oct 3775400
+loadc: oct 14000
+mssg: oct 666237
+alf cti
+alf 1 h
+alf d 9
+alf nwo
+alf   .
+nam !linkages to run-time routines
+ejt !Page: 58
+loc 1400
+bru ovfchk
+bru uflchk
+bru dvdchk
+ldx xtag,2
+bru intdiv,2
+ldx xtag,1
+bru er55,1
+bru bprsub
+bru dunflt
+bru powsub
+bru plink
+ldx xtag,2
+bru rdtsub,2
+ldx xtag,2
+bru $print,2
+ldx xtag,1
+bru round,1
+bru rdasub
+bru rd2sub
+ldx xtag,2
+bru er40,2
+bru tstsub
+ldx xtag,2
+bru $hort,2
+ldx xtag,2
+bru $tab,2
+crt: ldx xtag,2
+bru $crt,2
+ldx xtag,2
+bru $tring,2
+bru restor
+bru cos
+ldx xtag,1
+bru endjb1,1
+bru abs
+bru expsub
+bru elaps
+ldx xtag,2
+bru entier,2
+bru atn
+bru rdmsub
+bru log
+bru sqrsub
+bru signf
+bru sin
+unfsub: ldx xtag,1
+bru unflot,1
+ldx swexit,2
+bru 1,2
+bru clock
+bru resfil
+bru setfil
+bru rdbsub
+ejt !Page: 59
+bru wrtsub
+bru tan
+bru cot
+ldx xtag,1
+bru link,1 !linkage to link
+er54al: sxg 0
+er54l: ldx xtag,1
+bru er54,1
+linkr: equ er54l
+lowerr: ldx xtag,1
+bru er49,1
+logneg: ldx xtag,2 !error in ln
+bru er47,2
+logzer: equ logneg
+experr: ldx xtag,2
+bru er57,2
+nam !output constants
+ejt !Page: 60
+rem !for output routine
+ftent: fdc 1b1
+fdc 10b4
+fdc 1e2b7
+fdc 1e4b14
+fdc 1e8b27
+oct 332160
+oct 1571160
+oct 656356
+oct 265552
+oct 1527023
+oct 1403722
+expcvt: dec .30103b0
+tent: dec 100000
+dec 10000
+dec 1000
+dec 100
+ten: dec 10
+one: dec 1
+bleom: oct 777755
+bl2d: alf 0 0
+crlf: oct 777237
+crchar: oct 777737
+$true: alf tru
+alf e
+$false: alf fal
+alf se 
+spaces: alf      
+alf    
+time: alf tim
+alf e =
+minute: alf  mi
+alf ns.
+second: alf  se
+alf cs.
+roundr: oct 0000000
+oct 0414336
+blanks: alf     
+do1a: oct 0146314 !.1*1 in last place
+oct 1463150
+d.1: oct 0003146
+oct 0631463
+opout: dec pout+2
+dm4: dec -4
+dm5: dec -5
+dm9: dec -9
+five: dec 5
+six: dec  6
+seven: dec 7
+ejt !Page: 61
+d22: dec 22
+d24: dec 24
+o33: oct 33
+o40: oct 40
+o53: oct 53
+exp3: oct 0014000
+oblo: oct 4100
+*mov*: mov 0
+nam !constants common to run- and compile-time
+ejt !Page: 62
+rem !  the modifier of the compiler should bear in
+rem !mind that certain routiens can be called at
+rem !either run-time or compile-time.  Among these
+rem !are endjob, the integer part of print, round,
+rem !and intchk.
+
+o60: oct 60
+.5: fdc .5
+bigzer: fdc 0b30
+syntax: equ 1129
+fzero: fdc 0
+fone: fdc 1b1
+fmone: fdc -1
+zero: equ fzero
+two: oct 2
+eight: dec 8
+three: dec 3
+d30: dec 30
+d60: dec 60
+dm2: dec -2
+d40: dec 40
+d66: dec 66
+d64: dec 64
+d68: dec 68
+d128: dec 128
+four: dec 4
+o77: oct 77
+o3777: oct 3777
+o17777: oct 17777
+o37777: oct 37777
+abit: oct 400000
+oct 0
+qr2: equ abit
+cbit: oct 20000
+lbit: oct 1000000
+rbit: oct 0040000
+amask: oct 3760000 !leave address only
+acmask: oct 177777 !leaves high-order tags only
+armask: oct 3757777
+chmask: oct 3777700 !leave 6-bit character only
+epmask: oct 3774000 !remove exponent
+smask: oct 1777777 !leave sign bit
+sign: oct -0
+swtype: oct 1400000 !switch type
+retend: bru erloop-1,1
+goend: bru endjob-1,1
+*nop*: nop
+*stx2*: stx 0,2
+rdop: z12 1 !disk read
+ejt !Page: 63
+wrtop: z37 1 !disk write
+o10000: oct 10000
+modc1: bru const1-1,1
+modc2: bru const2-1,1
+modc3: bru const3-1,1
+d77: dec 77
+d14: dec 14
+dblone: ddc 1
+d30b8: dec 30b8
+o2000: oct 2000
+cmask: oct 3777770
+o7777: oct 7777
+xtag: oct 20000
+ymask: oct 3400000
+gr1: oct 0200000
+objlo: dec prog
+etmask: oct 3776000
+xmove: oct 4020
+dec -20
+dmask: equ armask
+dtype: oct 1100000
+excend: oct 1300
+gr4: equ lbit
+over: eqo 1400
+rem !constants for constant conversion
+ctable: fdc 1b1
+fdc 10b4
+fdc 1e2b7
+fdc 1e3b10
+fdc 1e4b14
+fdc 1e5b17
+fdc 1e6b20
+fdc 1e7b24
+fdc 1e8b27
+fdc 1e16b54
+fdc 1e32b107
+fdc 1e64b213
+oct 1777777
+oct 1777777
+ejt !Page: 64
+rem !provides internal identifiers for algol
+rem !symbols, special codes for control characters
+rem !and, for letters. the initial index for the
+rem !allist loopup, for algol symbol, the tag
+rem !bits give the following information
+
+rem !character  group subgroup  prev     u  number
+clist: oct 10000 !0
+oct 10001 !1
+oct 10002 !2
+oct 10003 !3
+oct 10004 !4
+oct 10005 !5
+oct 10006 !6
+oct 10007 !7
+oct 10010 !8
+oct 10011 !9
+oct 3405064 !apostrophe   6              2      1
+oct 3600016 !colon        7       0      look for =
+paren: oct 3405052 !open paren   6              2      1
+oct 3004075 !semicolon    4              2      
+oct 3600161 !=            7       1      2      1
+oct 2242004 !back slash   1       2      1
+plusid: oct 2262005 !+            1      3      1
+oct 0121 !a
+oct 0422 !b
+oct 1123 !c
+d: oct 1424 !d
+e: oct 1725 !e
+oct 2426 !f
+oct 2727 !g
+oct 0030 !h
+oct 3131 !i
+bellid: oct 2000001 !bell [non-inputuable]
+decid: oct 3400070 !.            6             0
+oct 3405065 !quote        6             2     1
+oct 3405064 !question mark [strings only]
+oct 3600216 !less than    7       2       look for =
+oct 2000003 !cr
+minid: oct 2262006 !??=         1        3       1
+oct 0041 !j
+oct 0042 !k
+l: oct 3743 !l
+oct 0044 !m
+n: oct 4145 !n
+o: oct 4246 !o
+oct 4447 !p
+oct 0050 !q
+oct 4751 !r
+oct 0 !tab
+expid: oct 3400067 !$               6              0
+oct 2242002 !*             1        2      1
+eomcr: oct 2000002 !eom
+oct 3600316 !greater      7        3       look for =
+ejt !Page: 65
+oct 2222001 !arrow       1      1      1
+oct 0 !space
+oct 3600416 !/           7       4       look for =
+s: oct 5162 !s
+t: oct 5763 !t
+oct 6364 !u
+oct 6565 !v
+oct 6766 !w
+oct 0067 !x
+oct 7170 !y     *****
+oct 0071 !z
+oct 2000000 !line feed
+oct 3003076 !,            4             1     1
+oct 3002074 !close paren  4             1
+oct 3403053 ![            6             1     1
+oct 3002073 !]            4             1
+spch: oct 2000004 !fill
+
+drgid: alf ess !$ipess
+true: alf rue !true
+false: alf lse !false
+bbit: oct 100000
+nam !run-time subroutines
+ejt !Page: 66
+elaps: lac
+sub runclk
+xaq
+lda bigzer
+dst junk
+fld junk
+cqx
+nox
+fdv fsix
+lda 1,2
+bnz
+bru er53l
+bru 2,2
+clock: lac
+bru elaps+2
+
+abs: bar bpl,7
+bru 1,1 !argument positive
+maq ,a
+fmp fmone !change sign for negative argument
+bru 1,1
+
+signf: bar bpl,7
+bru *+3
+fld fmone !anjswer is -1 if negative
+bru 1,1
+bar bze,7
+bru *+3
+fld fone !answer is 1 is positive
+bru 1,1
+maq ,a !answer is 0 if zero
+bru 1,1
+ejt !Page: 67
+rem !subscript testing
+tstsub: lda 1,1
+sta xr02
+z32 2,2
+bar bpl,7
+bru lowerr
+z31 0,2
+bar bmi,7
+bru lowerr
+bru 2,1
+
+dunflt: set uflpoint
+fad bigzer
+fst junk
+lda junk+1
+sla 1
+set nflpoint
+bru 1,2
+
+aser: ldx xtag,1
+bru er40,1
+ejt !Page: 68
+rdasub: lda 1,1
+sta dblock
+bru 2,1
+
+rd2sub: ldx dblock,2
+lda 0,2 !pointer for block
+cab 1,2 !number of elements in block
+bru *+3
+bru lrun !terminate program for lack of data
+bru lrun !terminate program for lack of data
+add two
+sta 0,2
+add dblock
+sta junk !form address of data word
+ldx junk,2
+dld 0,2 !get data word
+bru 1,1
+
+restor: lda 1,1 !restor performs the restore function, set-
+sta xr02 !ting a data block pointer back to zero
+ldz
+sta 0,2
+bru 2,1
+
+lrun: ldx xtag,1
+bru runout,1
+
+
+bprsub: bmi
+bru print5 !boolean value is false
+dld $true
+print6: dst bdcarg
+stx prx1,1
+lda dm2
+maq
+set pbk
+lda opoint
+add two
+cab excend
+bru *+3
+bru *+1
+spb egress,1 !call for intermediate output
+lda opoint
+add oblo
+mov bdcarg
+lda opoint
+add two
+sta opoint
+lda $ind
+add two
+sta $ind
+set pst
+ldx prx1,1
+ejt !Page: 69
+bru 1,1
+print5: dld $false
+bru print6
+
+egress: lda *nop*
+sta 8191
+ldo
+bru 8191 !get to 20,000 the hard way
+
+setfil: ldx veclo,2 !pointer to dope vector
+lda 2,2 !pointer to buffer in use
+sta dblock !pointer
+bru 2,1
+
+resfil: stx temp*,1 !restore disk file
+spb *+2,1
+bru *+3
+ldx xtag,2
+bru wrtdsk,2
+ldx temp*,1
+lda dskop+3
+bze *-1 !check for last read complete before setup
+
+ldx xtag,2
+bru setup,2
+
+rdbsub: ldx dblock,2 !pick up file pointer
+lda 2,2
+cab 3,2 !check for end-of-record
+bru *+3 !or
+bru endrec !oi vey
+bru endrec
+add two
+sta 2,2 !update
+add dblock !form address
+add two
+sta junk
+ldx junk,2
+dld 0,2 !get value
+bru 1,1 !exit
+
+endrec: sxg 1
+spb *+3,1 !fudge return
+sxg  0
+bru rdbsub
+ldx xtag,2 !go on up
+bru rddisk,2
+
+wrtsub: ldx dblock,2 !pick up pointer
+ldo
+sta 1,2
+lda 2,2
+cab 3,2 !check for end-of-record
+bru *+3
+ejt !Page: 70
+bru full !guess what
+bru full
+add two
+sta 2,2 !update it
+add dblock !form address
+add two
+sta xr02
+fst 0,2 !write out value
+bru 1,1 !exit
+
+full: sxg 1
+spb *+3,1
+sxg 0
+bru wrtsub
+ldx xtag,2
+bru wrtdsk,2
+rem !boolean functions for aau error checks
+ovfchk: lmo !overflow
+bar boo,7
+ldz
+bru 2,2
+uflchk: lmo !underflow
+bar buo,7
+ldz
+bru 2,2
+dvdchk: lmo !divide check
+bar bdc,7
+ldz
+bru 2,2
+ejt !Page: 71
+rem !random may appear with one or no arguments
+rdmsub: lda 1,2
+bnz
+bru throw !appears with argument
+dld randm2
+sld 5
+dad randm2
+dad d.1 !anything odd and not too large
+ext epmask
+dst randm2
+cqx
+fld randm2
+nox
+bru 2,2
+
+rem !call of random with an argument causes
+rem !initialization before access
+
+throw: ext amask
+sta xr01
+lda 1,2
+ext acmask
+bnz linkr !illegal argument
+lda 0,1
+ext amask
+sta xr01 !skip transfer thunk
+lda 0,1 !should be marker for end of thunks
+bze
+bru *+4 !it has
+er53l: stx junk,3
+ldx xtag,2
+bru er53,2 !error -- more than one argument
+stx rnd,1 !address of marker
+ldx xr02,1
+spb *+2,2
+bru *+2
+bru 3,1 !goto thunk
+lda 0,1 !get first word of result
+ext chmask
+sta junk
+spb rdmsub,2
+dec 0
+lda junk
+bze
+bru rndo
+sbo
+bru *-7
+rndo: ldx rnd,1 !exit
+bru 1,1
+ejt !Page: 72
+
+rem !the following routines are based on the
+rem !tables and methods found in
+rem !c. m. clenshaw - chebyshev series for
+rem !mathematical functions .  the routines were
+rem !written at dartmouth college by
+rem !ronald m. martin for use with the dartmouth
+rem !time-sharing system.  their use for any other
+rem !purpose without the express permission of
+rem !the author is strictly prohibited.
+
+rem !chebyshev polynomial evaluation routine
+
+rem !entrance is spb cheby,1 with n in a, x in ax,
+rem !and adxia[n1] in xr2,  a[n-1] follows a[n],
+rem !exit with f[x] in ax.
+
+cheby: fst cheb2x
+fad cheb2x
+fst cheb2x
+cax
+fst chebr2 !b[r+2]=0
+chebl: fst chebr1 !b[r-1]=0
+fld cheb2x
+maq ,a
+fmp chebr1
+fsu chebr2
+fad 0,2 !a[r]
+fst chebr !b[r]=2*x-b[r+1]-b[r+2]-a[r]
+bze
+bru chebe
+sbo
+inx 2,2
+fld chebr1
+fst chebr2
+fld chebr
+bru chebl
+chebe: fsu chebr2
+maq ,a
+fmp cheb.5 !f[s]=.5*[b[0]-b[2]]
+bru 1,1
+rem !lower memory constant
+cheb.5: fdc .5
+
+rem !sine - cosine routine
+
+rem !entrance is spb sin,1 or spb cos,1
+rem !with x in ax.  exit with f[x] in ax.
+
+cos: fad scpi/2
+sin: maq ,a
+fmp sc2/pi !series produces sin[[1/2]*pi-x]
+ejt !Page: 73
+fst scx
+fad sc1
+set uflpoint
+fad scbzer !dec31b8
+fst scsgn !odu*neg [in scsgn+1]
+set nflpoint
+cqx
+nox
+fst sctem
+fld scx
+fsu sctem !x between -1 and 1
+fst scx
+maq ,a
+fmp scx
+fst sctem
+fad sctem
+fsu sc1 !2-x*=2-1 for even series
+stx scx2,2
+ldx sintpt,2 !coefficients for cheby
+lda sc5 !n*5 for cheby
+stx scx1,1
+spb cheby,1 !evauluate chebyshev series
+maq ,a
+fmp scx !complete the evaluation
+lda scsgn+1 !correct sign if necessary
+bev
+bru *+4
+fst sctem
+cax
+fsu sctem
+ldx scx2,2
+ldx scx1,1
+bru 1,1
+sintab: fdc -6.702791603e-9
+fdc 1.184961858e-6
+fdc -1.365875135e-4
+fdc 9.118016007e-3
+fdc -2.852615692e-1
+fdc 2.552557925
+rem !lower mmemory constantws
+scpi/2: fdc 1.570796327
+sc2/pi: fdc 6.366197724e-1
+scbzer: fdc 31b8
+sc1: fdc 1
+ejt !Page: 74
+sc5: dec 5
+sintpt: dec sintab
+
+rem !tangent - cotangent routine
+
+rem !entrance is spb tan,1 or spb cot,1
+rem !with x in ax,  exit with f[x] in ax.
+cot: fst sctem
+fld scpi/2
+fsu sctem
+tan: maq ,a
+fmp tc4/pi !tan series produces tan[[1/4]*pi-x]
+fst scx
+fad sc1
+set uflpoint
+fad scbzer !ddc 31b8
+fst scsgn !even=tan, odd=neg cot
+set nflpoint
+cqx
+nox
+fst sctem
+fld scx
+fsu sctem !x between -1 and 1
+fst scx
+lda scsgn-1
+bod
+bru tccot
+fst sctem
+maq ,a
+fmp sctem
+fst sctem
+fad sctem
+fsu sc1 !2*s**2-1 for even series
+stx scx2,2
+ldx tantpt,2 !coefficients for cheby
+lda tc8 !nabr for cheby
+stx scx1,1
+spb cheby,1 !evaluate chebyshev series
+maq ,a
+fmp scx !complete the evaluation
+tcexit: ldx scx2,2
+ldx scx1,1
+bru 1,1
+tccot: maq ,a
+fmp cheb.5 !cot series produces cot[[1/2]*pi-x]
+fst scx
+maq ,a
+fmp scx
+fst sctem
+fad sctem
+fsu sc1 !2*x**2-1 for even series
+stx scx2,2
+ldx cottpt,2 !coefficients for cheby
+lda tc9 !r*9 fo r cheby
+ejt !Page: 75
+stx scx1,1
+spb cheby,1 !evaluate chebyshev series
+fdv scx !complete the evaluation
+fst sctem
+cax
+fsu sctem !change sign for neg cot
+bru tcexit
+tantab: fdc 1.038051085e-9
+fdc 1.445818659e-8
+fdc 2.013765769e-7
+fdc 2.804816136e-6
+fdc 3.906636955e-5
+fdc 5.441703817e-4
+fdc 7.586101578e-3
+fdc 1.067539286e-1
+fdc 1.770147423
+cottab: fdc -1.490576242e-10
+fdc -2.076114255e-9
+fdc -2.891712336e-8
+fdc -4.027998191e-7
+fdc -5.612549263e-6
+fdc -7.831730733e-5
+fdc -1.100405918e-3
+fdc -1.604553382e-2
+fdc -3.172038386e-1
+fdc 6.688682844e-1
+rem !lower memory constants
+tc4/pi: fdc 1.273239545
+tc8: dec 8
+tc9: dec 9
+tantpt: dec tantab
+cottpt: dec cottab
+
+rem !arctangent routine
+ejt !Page: 76
+rem !entrance is spb stn,1 with x in ax,
+rem !exit with artan[x] in ax.
+atn: fst scx
+ldz !flag=0
+bar bpl,7 !is abs[x] lqu 1
+bru *+4
+ado !flag=61
+cax
+fsu scx
+fsu sc1
+bar bpl,7
+bar bze,7
+bru atev
+cpl !flag68-1 or -2
+fld sc1
+cqx
+fdv scx
+fst scx
+atev: sta scsgn !- adjust, odd +, even -
+fld scx
+maq ,a
+fmp scx
+fst sctem
+fad sctem
+fsu sc1 !s*x**2-1 for even series
+stx scx2,2
+ldx atntpt,2 !coefficients for cheby
+lda at10 !n=10 for  cheby
+stx scx1,1
+spb cheby,1 !evaluate chebyshev series
+maq ,a
+fmp scx !complete the evaluation
+lda scsgn
+bpl
+bru atna !no adjustment necessary
+fst sctem !adjust result, abs[x] grt 1
+bod
+bru atpad ![pi/2]-arctan[1/x]
+cax !-[pi/2]-arctan[1/x]
+fsu scpi/2
+atad: fsu sctem
+atna: ldx scx2,2
+ldx scx1,1
+bru 1,1
+atpad: fld scpi/2
+bru atad
+atntab: fdc 2.068505764e-9
+fdc -1.330338398e-8
+fdc 8.648877864e-8
+fdc -5.699186167e-7
+ejt !Page: 77
+fdc 3.821036594e-6
+fdc -2.621519611e-5
+fdc 1.857429733e-4
+fdc -1.381195004e-3
+fdc 1.113584206e-2
+fdc -1.058929245e-1
+fdc 1.762747174
+rem !lower memory constants
+at10: dec 10
+atntpt: dec atntab
+
+rem !esponential routine
+
+rem !entrance is spb exp,1 with x in ax,
+rem !exit with exp[x] in as,
+rem !eror exit is bru experr with
+rem !machine infinity in ax and return to
+rem !calling routine in xr1.
+expsub: maq ,a
+fmp exl2e !log2[e]
+fst scx
+fad sc1
+set uflpoint
+fad exbzer !duc 30bh
+fst scsgn !save for 2**n
+set nflpoint
+cqx
+nox
+fsu scx !t for 2**[-t]
+dld scsgn !check range
+ext exexmk !mask out exponent
+sld 0 !transfer sign
+dcb exmax !doc 225
+bru exok
+bru exsp !check special case
+exer: fld exbig !machine infinity
+bru experr !error exit
+exsp: bar bze,7
+bru exer !t=0 and n=256
+exok: sld 30
+dst scsgn
+fst scx
+fad scx
+fsu sc1 !translate for t* series
+stx scx2,2
+ldx exptpt,2 !coefficients for cheby
+ejt !Page: 78
+lda ex7 !n=7 for cheby
+stx scx1,1
+spb cheby,1 !evaluate chebyshev sereis
+fst sctem
+lda sctem
+add scsgn !adjust exponent (add n]
+sta sctem
+fld sctem
+ldx scx2,2
+ldx scx1,1
+bru 1,1
+exptab: fdc -1.321516381e-9 !chebyshev coefficients for 2**[-x]
+fdc 5.341187688e-8
+fdc -1.850690714e-6
+fdc 5.345305818e-5
+fdc -1.235714082e-3
+fdc 2.144655599e-2
+fdc -2.487624339e-1
+fdc 1.456999875
+rem !lower memory constants
+exl2e: fdc 1.442695041
+exbzer: ddc 30b8
+exmax: ddc 255
+exbig: oct 1777777
+oct 1777777
+exexmk: oct 3774000
+ex7: dec 7
+exptpt: dec exptab
+
+rem !logarithm routine
+
+rem !entrance is spb log,1 with x in ax.
+rem !exit with log[abs[x]] in ax.
+rem !if x lss 0 exit is bru logneg,
+rem !if x equ 0 exit is bru logzer,
+rem !in both cases return is still in xr1
+
+log: bar bnz,7
+bru *+3
+fld lonbig !error exit
+bru logzer
+fst scx
+ldz !flag for error exit
+ejt !Page: 79
+bar bpl,7
+bru lop
+cax
+fsu scx
+fst scx
+lmo !error - set flag
+lop: sta lof
+lda scx
+sra 11
+sbo
+srd 19
+ext exexmk
+add exbzer !exponent of 30
+dst scsgn
+lda scx
+ext exexmk
+add lo1b8 !adjust exponent [add 1]
+sta scx
+fld scx
+fsu sc1 !adjust x for series [log[1+x]]
+fst scx
+fad scx
+fsu sc1 !adjust tor t* series
+stx scx2,2
+ldx logtpt,2 !coefficients for cheby
+lda lo12 !n=12 for cheby
+stx scx1,1
+spb cheby,1 !evaluate chebyshev series
+fst sctem
+fld scsgn
+cqx
+nox
+maq ,a
+fmp log2 !ln[2]
+fad sctem
+ldx scx2,2
+ldx scx1,1
+lda lof
+bmi
+bru logneg !error exit
+bru 1,1
+logtab: fdc -1.084506855e-10
+fdc 6.895602732e-10
+fdc -4.420956981e-9
+fdc 2.863025065e-8
+fdc -1.877279957e-7
+fdc 1.250467362e-6
+fdc -8.502967541e-6
+ejt !Page: 80
+fdc 5.947071199e-5
+fdc -4.332758886e-4
+fdc 3.367089256e-3
+fdc -2.943725152e-2
+fdc 3.431457505e-1
+oct 0003005
+oct 1715424
+rem !lower memory constants
+log2: fdc 6.931471806e-1
+lonbig: oct 1774000
+oct 2000001
+lo1b8: dec 1b8 !!Produces 0004000?????
+lo12: dec 12
+logtpt: dec logtab
+
+itst: stx /6134,1
+ldx xtag,1
+bru intchk,1
+
+powsub: xaq ,a
+bar bze,7
+bru basezr !base = 0
+bar bmi,7
+bru basemi !base is negative
+xaq ,a
+spb itst,2 !check for integer exponent
+bru lnexp
+powmpy: ldx /6134,1
+bar bpl,7
+bru pow5 !exponent is positive
+xaq ,a !negative exponent
+fst powt
+cax
+fmp fmone
+fst junk
+cqx
+fld fone
+fdv powt
+maq ,a
+bru *+2 !n7 = 1/base      junk = -exp
+pow5: fst junk
+dld fone
+dst powt
+dld junk
+sra 11
+sub d30
+neg
+ejt !Page: 81
+sta xr02
+lda junk
+ext epmask !mask off exponent
+srd 0,2 !truncate
+xaq ,a
+fst junk !base
+bru pow3
+pow1: maq ,a
+fmp junk
+fst junk !next [2**n]-th power of base
+pow3: xaq
+bev
+bru pow2
+maq ,a !this factor belongs
+fmp powt
+fst powt
+fld junk
+pow2: xaq
+srd 1
+dcb fzero
+bru pow1
+bru *+2
+bru pow1
+fld powt != answer
+bru 1,1
+basemi: xaq ,a
+bar bze,7
+bru pow4 !exponent = 0 , answer is one
+spb itst,2
+bru er46l !exponent not an integer
+bru powmpy
+basezr: xaq ,a
+bar bpl,7
+bar bze,7
+bru er46l !exponent not strictly positive
+xaq ,a
+bru 1,1 !exit with zero
+pow4: fld fone !answer is 1
+bru 1,1
+lnexp: fst junk !exponent
+lda /6134
+sta powxr
+xaq ,a
+spb log,1
+maq ,a
+fmp junk
+spb expsub,1
+ldx powxr,1
+bru 1,1
+er46l: ldx xtag,2
+bru er46,2
+ejt !Page: 82
+sqrsub: fst farg
+bar bmi,7 !is argument positive
+bru er48l !square root of a negative number
+dld farg
+ext epmask
+bze
+bru 1,1
+sub epmask !add one to exp
+srd 1
+dst /2108
+lda farg
+ext o3777
+sub epmask !add one ot exp
+sra 1
+ory /2108
+stx /2110,1
+ldx zero,1
+/2112: cqx
+fld farg
+fdv /2108
+fad /2108
+inx 1,1
+fst /2108
+lda /2108
+add epmask !subtract one from exponent
+sta /2108
+bxl  4,1
+bru /2112
+cqx
+fld /2108
+ldx /2110,1
+bov !turn off overflow
+bru *+1
+bru 1,1
+
+er48l: ldx xtag,2
+bru er48,2
+ejt !Page: 83
+rem !upon entry
+rem !     xr01  procedure heading
+rem !     xr02  calling sequence
+
+rem !use of other registers
+rem !     xr03  points to end of proceudre
+rem !     xr11  actual array heading
+rem !     xr12  formal array heading
+
+plink: stx junk,3
+lda 1,1
+sta xr03 !address of exit from procedure
+inx 1,2 !point to first think
+plink1: lda 0,2
+bze
+bru plink3 !end of actual parameters
+ext o37777
+sta aptype
+inx 2,1 !point to formal parameter type
+lda 0,1
+bze
+bru er53l+1
+ext o37777
+cab aptype
+bru plink4 !types not identical -- check some more
+bru *+2
+bru plink4 !types not identical -- check some more
+ext acmask
+cab abit
+bru *+2
+bru alink !array
+rem !types non-array, and identical, check for
+rem !type real.
+lda aptype
+ext acmask
+bze fudge !link transfer thunk
+
+plink2: lda xr02
+add two
+sto 1,1 !fill bru in thunk link
+plink7: lda 0,2
+ext amask
+sta xr02 !address of next thunk
+bru plink1
+
+rem !array name as parameter
+
+alink: lda 1,2 !location of actual array heading
+sta xr11
+lda 1,1
+ext amask !location of r.p. heading
+sta xr12
+sxg 1
+lda 0,2 !formal number of subscripts
+ejt !Page: 84
+ext armask !3757777
+bnz
+bru plink5 !number unknown -- array just passed on
+lda 0,2 !formal subscript count
+sub 0,1 !actual subscript count
+ext amask
+bnz
+bru er54al !wrong number of subscripts
+bru plink6
+plink5: lda 0,1 !actual subscript count
+sto 0,2 !do not change sign
+plink6: lda dm21
+lqa
+lda xr11
+ado
+set pbk
+sto *+3
+lda xr12
+ado
+mov 0 !mov subscript information to formal array
+set pst
+sxg 0
+bru plink2+3 !back for more parameters
+
+plink3: lda 2,1 !end of actual parameters
+bnz
+bru er53l+1
+lda xr02
+ado
+sto 0,3 !fill exit from procedure
+ldx junk,3
+bru 3,1
+
+rem !arrapent mismatch, for formal parameter
+rem !type notype indicates actual parameter may
+rem !be real or integer type
+
+plink4: cab *stx2* !check for notype [extracted]
+bru er54l !not notype--mismatched parameters
+bru *+2
+bru er54l !not notype--mismatched parameters
+lda aptype
+ext o17777
+ext rbit
+bnz
+bru er54l !not arithmetic type
+bru plink2
+
+fudge: lda xr02
+add two
+sto 1,1 !fill thunk link
+lda 0,2 !link in calling sequence
+ext amask
+sta xr02 !update thunk pointer
+ejt !Page: 85
+lda 0,1
+stx aptype,1
+sta xr01 !point to transfer thunk link
+lda xr02
+add two
+sto 0,1 !fill transfer thunk link
+ldx aptype,1
+bru plink7
+nam !overlay 2  --  run-time constants
+ejt !Page: 86
+fsix: fdc 6
+ddm1: ddc -1
+maxneg: oct 1777777
+oct 3777777
+maxpos: oct 1777777
+oct 1777777
+minpos: oct 2006000
+oct 0
+d29: dec 29
+trapt: bru ovfl,2 !***warning - trapt must be odd***
+bru uflo,2
+bru dvck,2
+trapl: eqo 205
+dm21: dec -21
+dm25: dec -25
+dm27: dec -27
+o5700: oct 5700
+rem !for random
+randm1: oct 0001555
+oct 1555555
+rrf: z12 0
+darea: oct 6000
+star: alf 00*
+fills: oct 777777
+c9: dec 9
+c10: equ ten
+c2: equ five
+exec: equ 8192
+ceof: oct 555555
+nam !run-time storage allocation
+ejt !Page: 87
+loc 4300
+asize: bss 2 !foating array size
+lb: bss 2 !bound pair -- lower bound
+opcall: bss 2 !operand info [arrays, data]
+go3: bss 2 !backup info if -to - not after -go
+astart: bss 1 !ncc l0 for array indentifier list
+atype: bss 1 !type [ procedures, formal parameters ]
+ax: bss 1 !subscript indicator for loadgn
+binexp: bss 1
+bsc: bss 1 !block symbol cellar counter
+cavail: bss 1 !constant table pointer
+cflag: bss 1 !colon-flag for bound pairs in decl.
+cmode: bss 1 !switch for constant mode
+cread: bss 1 !constant has been read flag
+declo: bss 1 !location of *bru* around declaration
+depth: bss 1 !blocking depth counter
+dinam: bss 1 !constants-only flag
+dstat: bss 1 !declaration legal flag
+eavail: bss 1 !etable pointer
+expflg: bss 1
+finc: bss 1 !identifier for increment
+flab1: bss 1 !lo of for list element computation
+flab2: bss 1 !l0 of test for done
+flab3: bss 1 !exit from loop
+flab4: bss 1 !index in nc for running variable
+foray: bss 1 !funning variable subscripted flag
+forno: bss 1 !first element in for list flag
+fpflag: bss 1 !for formal parameter assignment
+go1: bss 1 !backup xr save
+go2: bss 1 !backup xr save
+iavail: bss 1 !itable pointer
+itemp: bss 1 !very temporary register save
+lineno: bss 1 !compile-time line number
+load: bss 1 !*lda* or *fld*  --  loadgn
+noel: bss 1 !number of elements -- various source lists
+nuob: bss 1 !number of undefined objects
+opa: bss 1 !operand address
+opax: bss 1 !operand subscript address
+own: bss 1 !non-zero in own declarations
+pblok: bss 1 !previous l0 in bs
+plf: bss 1 !last location availiable to object
+prev2: bss 1 !previous prev.  [route puts symb in prev]
+prflag: bss 1 !tab suppression flag
+punt: bss 1 !simple increment flag
+rexit: bss 1
+rtemp: bss 1
+sloc: bss 1
+sslo: bss 1
+switch: bss 1 !commutative operation flag
+temp: bss 1 !various temporary uses
+term: bss 1 !comment loop symbol-only flag
+tslf: bss 1 !end of current temporary storage area
+tslo: bss 1 !beginning of current temporary storage area
+test21: bss 1 !xr save for notalg
+ejt !Page: 88
+tsflag: bss 1 !temporary storage availiability flag
+tst: bss 1 !temporary store instruction
+whami: bss 1 !where-am-i flag
+writex: bss 1 !used by -write-
+wtemp: bss 1 !used by -write-
+erflag: bss 1
+eraval: bss 1
+dkflg3: bss 1
+dkflg2: bss 1
+trpflg: bss 1 !no trap flag
+
+xr00: equ 0 !very temporary
+xr01: equ 1 !number cellar counter [noc]
+xr02: equ 2 !miscellaneous exits
+xr03: equ 3 !miscellaneous exits
+
+xr10: equ 4 !return after tieup
+xr11: equ 5 !symbol cellar counter [soc]
+xr12: equ 6 !miscellaneous exits
+xr13: equ 7 !exit from loagn and a few others
+
+xr20: equ 8 !working storage for edit
+xr21: equ 9 !word index in source
+xr22: equ 10 !character index in word
+xr23: equ 11 !mode of input [i.e. exit from char]
+
+xr30: equ 12 !ident2 character count
+xr31: equ 13 !ident1 word count
+xr32: equ 14 !ident2 word count
+xr33: equ 15 !ident1 character count
+
+xr40: equ 16
+xr41: equ 17 !index in itable of last-read identifier
+xr42: equ 18
+xr43: equ 19
+
+txr2: eqo 212 !!this is very, very bad technique
+return: equ xr10 !return after compiling
+nc: eqo 4700 !number cellar
+sc: eqo 4700 !symbol cellar
+bs: eqo 4440 !block symbol cellar
+bslf: eqo 236
+ident1: eqo 6001 !identifier accumulator
+ident2: eqo 6013 !identifier accumulator
+etable: eqo 5000 !external identifier table
+itable: eqo 5000 !internal identifier table
+cmpflg: equ 6438
+junk: eqo 6000
+cclo: eqo 6050
+outbuf: eqo 4100 !output buffer
+ejt !Page: 89
+loc 5700
+trpsv: bss 1
+sidxr: equ xr00
+crud: eqo 17776
+ichk1: equ crud
+powt: equ crud
+dnad: equ 6120
+randm2: bss 2
+ichkxr: bss 1
+powxr: bss 1
+rnd: bss 1
+dblock: bss 1
+swexit: bss 1
+aptype: bss 1 !actual parameter type for linkage check
+farg: bss 0 !insures atemp starts in even location
+atemp: bss 26
+dskop: bss 5
+rdblk: equ dskop
+wrtblk: bss 4
+veclo: bss 1
+dkflg1: bss 1
+rem !for sqrt
+/2108: equ atemp+2
+/2110: equ atemp+4
+rem !for other math routines
+scx: equ atemp+2
+scsgn: equ atemp+4
+sctem: equ atemp+6
+scx1: equ atemp+8
+scx2: equ atemp+9
+lof: equ atemp+10
+cheb2x: equ atemp+12
+chebr2: equ atemp+14
+chebr1: equ atemp+16
+chebr: equ atemp+18
+rem !for power
+/5112: equ atemp+20
+/6134: equ atemp+22
+rem !for output
+bdcarg: equ atemp+24
+uneout: equ 3286
+rem !for link
+org atemp+1
+getpro: bss 4
+cffa: bss 4
+o10: equ eight
+rem !for disk routines
+dskflg: equ 8188
+rem !storage for service routines common to both
+rem !run- and compile-time
+loc 6252
+erx1: bss 1 !compile time error xr save
+erx2: bss 1 !compile time error xr save
+erx3: bss 1 !compile time error xr save
+ejt !Page: 90
+prx1: bss 1
+prx3: bss 1
+$ind: bss 1
+prxt: bss 1
+crump: bss 1
+pavail: bss 1 !object program pointer
+vavail: bss 1 !variable storage pointer
+pout: bss 15
+const: bss 2 !holds converted constant
+constx: bss 2 !provisional value of constant mantissa
+ch2: bss 1 !character accumulator
+ch3: bss 1 !character sccululator
+bigc: bss 1 !high order bits of const*10
+dctr: bss 1 !decimal point flag
+dinc: bss 1
+exp: bss 1 !absolute exponent of constant
+sgnexp: bss 1 !sign of exponent of constant
+symb: bss 1 !holds last symbol read
+prev: bss 1 !previous symbol
+type: bss 1 !type in expressions
+temp*: bss 1 !xr save
+save*: bss 1 !xr save
+prog: bss 0
+erlo: equ prog-1
+
+end disk2
+
+

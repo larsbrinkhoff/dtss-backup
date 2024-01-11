@@ -1,0 +1,1388 @@
+ejt !Page: 6
+rem !********************************************
+rem !
+rem !   *   *  ***  *****   *    ***  *****
+rem !   **  * *   *   *     *   *     *
+rem !   * * * *   *   *     *   *     *
+rem !   *  ** *   *   *     *   *     ***
+rem !   *   * *   *   *     *   *     *
+rem !   *   * *   *   *     *   *     *
+rem !   *   *  ***    *     *    ***  *****
+rem !
+rem !   ***********************************
+rem !the compiler is stored on the disk in three
+rem !overlays, numbered 0,1, and 3 to please the 2
+rem !235 exec.
+rem !     overlay one contains the lower memory
+rem !constants needed at compile time, the compil
+rem !time package immediately calls in this over-
+rem !lay and then wipes out the instructions call-
+rem !ing for it so that it is called for only when
+rem !it is not in memory.
+rem !     overlay three is the run-time packatge, a
+rem !and contains its own lower memory portion
+rem !which is moved to lower memory by the exec,
+rem !                       steve garland
+rem !                       kevin o’gorman
+rem !                       sarr blumson
+rem !   ***********************************
+rem !
+rem !   *   *  ***  *****   *    ***  *****
+rem !   **  * *   *   *     *   *     *
+rem !   * * * *   *   *     *   *     *
+rem !   *  ** *   *   *     *   *     ***
+rem !   *   * *   *   *     *   *     *
+rem !   *   * *   *   *     *   *     *
+rem !   *   *  ***    *     *    ***  *****
+rem !
+rem !   ***********************************
+nam !linkage to executive
+ejt !Page: 7
+rem !algol compiler for dartmouth time-sharing
+rem !   --assembled april 28, 1966-
+
+rem !maximum uninterruptible period is .0737 sec
+rem !on 235.  this occurs at the clear-by-move
+rem !of the 6k area.  the time-sharing-exec [p 2]
+rem !may chump a program that takes more than
+rem !.0259 secs to respond to an interrupt
+rem !   yes, this could lead to trouble
+
+
+loc 5000
+disk1: bru 1,2 !return to exec--no fudging required
+
+
+
+rem !linkage with 225 executive
+
+loc 20000
+oct 0  !exit to 225 executive
+algol: bru start !executive transfers control to this location
+bru clean !transfer to clean-up routine
+oct 0  !spare
+alf alg
+oct 0 !number of overlay indicating main system
+oct 0 !location to move coding to in lower 8k
+oct 3777777 !- length of coding
+oct 0 !location to move from
+clean: ldz !cleanup routine just does a terminal exit
+bru 8192
+runcal: spb 0,1 !go to exec for tun-time package
+dec 2 !placed here to lower entrance to overlay 3
+oct -2
+dec 6016
+oct 20000
+bru start
+
+
+munclk: eqo 4000
+opoint: eqo 4001 !pointer to first word available in output
+!buffer
+length: eqo 4003 !number of 64 word blocks in source program
+
+rem !all exits from the compiler go to location
+rem !debug with a set equal to
+rem !     0 for a terminal exit
+rem !     1 for imtermediate output
+rem !     2 for an input call
+rem !     3 for an overlay call
+rem !     4 for an overlay delete
+nam !debugging routines
+ejt !Page: 8
+rem !following are the key-punch equivalents of
+rem !the special teletype characters --
+rem !     arrow                          -78
+rem !     special integer divide          78
+rem !     less than                      +68
+rem !     greater than                   -68
+rem !     colon                            =
+rem !     left parenthesis             quote
+rem !     left bracket                   058
+rem !     apostrophe                      28
+rem !     quote                 right parenthesis
+rem !     right parenthesis      left parenthesis
+rem !     right bracket                  068
+rem !     semicolon                       58
+rem !     eom                            -58
+rem !     carriage return                +78
+
+rem !yoicks  is a general teletype debugging
+rem !patch with the following control characters -
+rem !     colon - stores working address
+rem !     comma - patches working address with 0
+rem !       +  -  increments working loc
+rem !     semicolon  -  terminates yoicks
+
+yoicks: inx 1,1 !erase yoicks from sc
+sxg 2
+yloop: ldz
+sta junk+1
+spb char,3
+cab o10000
+bru y1
+bru *+1
+srd 3 !shift digit into d
+lda junk+1
+ext ymask
+sub gr1
+chs
+srd 0
+sld 3
+sta junk+1
+bru char !get next character
+y1: cab clist+11 !check for colon
+bru *+2
+bru ycolon
+cab clist+16 !check for plus
+bru *+2
+bru yplus
+cab clist+59 !check for comma
+bru *+2
+bru ycomma
+cab clist+13 !check for semicolon
+bru *+2
+ejt !Page: 9
+bru ysemi
+bru char !ignore any other character
+ycolon: lda junk+1 !ycolon stores previous address in junk
+sta junk
+bru yloop
+yplus: lda junk !yplus increments the address in junk
+ado
+sta junk
+bru yloop
+ycomma: ldx junk,3 !ycomma patches the loc in junk with 0
+lda junk+1
+sta 0,3
+bru yloop
+ysemi: ldx modun,3 !ysemi exits from the debugging routine
+bru char
+nam !initialization
+ejt !Page: 10
+start: spb *+2,1 !call in overlay no. 1 for compiler constants
+oct 3
+lda 1,1 !code for overlay call
+spb 0,1 !get overlay
+oct 0 !system currently in
+oct 1 !overlay being called
+oct 2400 !length of overlay being called
+oct 1400 !location to store overlay
+lda nover !plant transfer around overlay call so that
+ldx xtag,1 !     it is not called in when it is already
+sta algol,1 !     in memory
+start1: lda length !number of 64 work blocks in source program
+ext etmask !extract out file code
+sla 6 !multiply by 64
+neg
+lqa
+add xtag !form address of lcoation to move source to
+sbo 
+sta xr21 !set pointer to source program
+ado
+sta plf !first estimate of where program must end
+mov junk !shove source program as far up as it will go
+laq
+add o13677
+neg
+maq
+sta outbuf
+lda oblo
+ado
+mov outbuf !clear 6k area from save area to source prog
+sta opoint 
+sta xr01 !set number cellar counter to 0
+set nflpoint
+wai
+bru *
+bru * !if this happens, you deserve to hang up
+rin
+set ntpmode
+lmo
+sta depth !initialize depth of blocking
+lda xtag
+sta whami
+lda o6002
+sta tslo
+add d37
+sta tslf
+lda o124
+sta iavail
+lda o711
+sta eavail 
+ldo
+sta cmode !set constant input mode to normal
+lda smask
+sta tsflag !set tsflag to all temp locations available
+ejt !Page: 11
+lda objlo
+sta pavail !set pointer to last loc used by object prog
+lda varlo 
+sta vavail !set point to last loc used for variables
+sta bs+1
+lda o77 
+sta xr11 !initialize symbol cellar counter
+lda begid
+sta sc+63 !pad end of cellar just in case
+dld iticon !move constants for itable initialization
+mov itinit
+dld eticon !constants for etable initialization
+mov etinit
+sxg 2
+ldx modun,3
+ldx two,2 !set character counter for source
+stx bsc,2
+stx pblok,2
+bru edit !edit first line number
+nam !miscellaneous service routines
+ejt !Page: 12
+rem !write stores compiled instructions in memory
+
+write: sta wtemp
+lda erflag
+bmi !check for past errors, if any no write
+bru 1,2 !so exit
+stx writex,2
+lda pavail
+ado
+sta pavail
+cab plf
+bru *+3 !no overflow
+bru *+1
+spb adjust,2 !see if more room is available
+ldx pavail,2
+lda wtemp
+sta 0,2 !store instruction in memory
+ldx writex,2 !restore exit
+bru 1,2 !exit
+
+
+rem !adjust  adjusts plf to the final location
+rem !available for program storage.  plf is
+rem !originally set to the first location of the
+rem !source program.  whenever the storage
+rem !allocated for arrays and variables exceeds
+rem !the space occuplied by the remaining source
+rem !program, plf becomes identical with vavail,
+rem !before then, plf is adjusted each time adjust
+rem !is called to equal the source program counter
+
+adjust :lda xr21 !source program counter
+cab vavail
+bru *+3
+bru *+1
+lda vavail
+sta plf !plf is set to the minimum of vavail and xh21
+cab pavail
+bru er1 !storage exhausted
+bru er1 !storage exhausted
+bru 1,2 !more room left
+
+
+rem !wrapup  checks to make sure compilation
+rem !has been successfully completed, and if so,
+rem !transfer control to the object program.
+
+wrapup: lda bruend !transfer to endjob routine
+spb write,2 !store instruction
+lda bs+1
+bze
+lda vavail
+cab vavail
+bru *+3
+ejt !Page: 13
+bru *+2
+lda vavail
+sta vavail
+cab pavail
+bru er1 !one last check
+bru er1
+wrapp1: lda three
+bru runcal
+
+erwrit: stx writex,2 !writes error flags for runtime message
+sta wtemp !save things
+lda eraval
+ado !increment eraval
+cab xr21 !check for overrun of source
+bru *+3
+bru wrapup !too many error messages--you spazzz
+bru wrapup !you too
+sta eraval
+ldx eraval,2 !sto index rewister
+lda wtemp
+sta 0,2 !store the bloody thing
+ldx writex,2 !get return
+bru 1,2 !go get some more goodies
+nam !character input and analysis routines
+ejt !Page: 14
+rem !input processes the source program by
+rem !picking off algol symbols, identifiers,
+rem !and constants.  identifiers and constants
+rem !are handled by subroutines of input,
+rem !while algol symbols cause control to be
+rem !transferred to route.
+input :sxg 2 !set index group 2 for character input
+
+
+rem !char picks of the next legitimate
+rem !character from the source program.  fill
+rem !characters are ignored, charriage returns
+rem !generate an editing process.  the eom
+rem !mark causes am exit to the wrapup
+rem !routine.  char uses index group 2
+rem !as follows.
+rem !  xr20 - working storage for editing
+rem !  xr21 - word index in source program
+rem !  xr22 - character index in word
+rem !  xr23 - exit set according to mode of input
+
+char: stx temp,3 !save exit
+bxh 2,2 !text character counter
+bru newwrd !read new word of source program
+lda ch2,2 !pick up character in word already read
+inx 1,2 !increment character counter
+codech: ext chmask !trim to last six bits
+sta xr23 !xr23 = index for lookup in clist
+lda clist,3 !internal code for character
+ldx temp,3 !restore exit
+cab spch !check for special characters and fudges
+bru *+3 !it is one , , , check furether
+bru char+1 !ignore fill character
+bru 1,3 !exit according to mode of input
+
+cab eomch !fudge or special character
+bru cfudge !fudge character
+bru er44 !thata all folks
+lda o32 !fudge first, line-number later
+sta ch3 !37 becomes [non-inputable] bell
+ldx one,2 !get index back in step
+ldz !code for space
+bru 1,3 !exit with space for carriage return
+
+cfudge :cab bellid !which fudge
+bru er44 !end-of-message fudge
+ejt !Page: 15
+rem !     edit picks off the line numbger from the
+rem !two words following the fudged ch, stores
+rem !this number in lineno, and places it in the
+rem !object program for error message references.
+rem !the normal scan of the source program is then
+rem !resumed.
+
+edit: stx itemp,3 !save exit from char
+ldx zero,0 !counter for number of digits in line-number
+dld fzero !clear q-register
+spb char,3 !pick up next character-id
+cab o7777 !check for digit
+bru edout !not a digit -- end of line-number
+bru * !not possible -- or so we hope
+inx 1,0 !digit , , , increment count
+ext chmask !trim to value
+mpy ten !accumulate line-number in q-register
+bxl 5,0 !check count -- only first 5 digits are used
+bru char !get next character
+edit1: ldx itemp,3 !restore exit
+lda declo !line-number write-inhibit flag for strings,
+rem !     declarations, formal parameter lists
+bnz noedit !do not write line-number
+stx temp,2 !save register
+lda pavail !last used location
+sub two !check for sequential line-numbers
+sta xr22 !by looking back two locations
+add edspb !and comparing with an  spb *+2,3
+cab 1,2
+bru *+2 !not an spb
+stx pavail,2 !back up pavail by two
+lda pavail !new [or old] pavail
+add edspb !sph 3,3 instruction around lineno in program
+spb write,2 !included in object program
+laq !line-number to a-register
+sta lineno !save line-number for compile-time error
+spb write,2 !and for run-time error
+ldx temp,2 !restore register
+bru char !resume source scan
+edout: bxh 1,2 !back off one character in source
+bru edit2 !back off character counter
+lda xr21 !back off word counter
+sbo 
+sta xr21
+ldx two,2 !set character counter
+bru edit1 !and set things back to normal
+edit2: lda xr22 !back off character counter only
+sbo
+sta xr22
+bru edit1 !set things back to normal
+noedit: laq !skip storing line-number in object
+sta lineno !but save for compile-time reference
+lda declo
+cab dm2
+ejt !Page: 16
+bru char
+bru 1,3
+bru char
+
+newwrd: inx 1,1 !get new word from source
+lda 0,1 !word to a-register
+sta ch3 !divide into three characters
+sra 6
+sta ch2
+sra 6
+ldx zero,2 !character counter
+bru codech
+ejt !Page: 17
+rem !undef = undefined input mode.  the next
+rem !character read, other than a space, determines
+rem !the input mode.
+
+undef: bmi
+bru symbol !character an algol symbol
+bze
+bru char !ignore a space
+cab o7777 !distinguish between letters and digits
+bru letter
+bru *+1
+ext chmask !character is digit
+maq
+dst const !const = value of constant being read !! is it dst or what???
+ldx modc1,3 !set input mode to const1
+ldz
+sta dctr !dctr = no of digits after decimal point = 0
+sta dinc !dinc = 0 before decimal point, ??? after
+sta exp !exp = exponent = 0
+sta bigc !bigc is excess of const over zesp19*10
+sta type !set type to integer
+ldo
+sta sgnexp !sgnexp = 1 = +
+bru char
+letter: sta temp
+ldx modidn,3 !set input mode to ident
+lda dinam
+bnz !check constant - only flag
+bru er8 !**** dynamic declarations not yet allowed
+sxg 3   !set index group 3 for indentifier counters
+ldx one,1 !ident1 word count = 1
+ldx zero,2 !ident2 word count = 0
+ldx two,0 !inden2 character counter = 2
+lda temp
+ext chmask
+bru letin !store first character of identifier in ident2
+
+symbol: ext sign !chop off sign bit
+sta symb
+cab gr7
+bru route
+bru *+1 !for symbols in group7, check to see if the
+!symbol being read is composed of two
+!     characters or only one
+ext chmask !trim to second character of two char symbol
+sta temp
+bxl 2,2
+bru pc2or3 !pick up 2nd or 3rd char in word
+lda 1,1 !pick up first character in new word
+sra 12 !shift character to last 6 bits
+peek1: cab temp !check character for second part of symbol
+bru *+2
+bru twoch !form two char symbol
+lda symb !here for only one char symb
+sca 6 !shift number of symbols to 0 - 19
+ejt !Page: 18
+ext chmask
+sta xr23
+lda id1ch,3 !load internal identifier for one char symbol
+sta symb
+ldx modun,3 !set input mode to undefined
+bru route
+pc2or3: lda ch2,2
+ext chmask
+bru peek1
+twoch: lda symb
+sca 6 !shift number of symbols to 0 - 19
+ext chmask
+sta xr23
+lda id2ch,3 !load identifier for two char symbol
+sta symb
+spb char,3 !adjust x-registers for char read
+ldx modun,3
+bru route
+ejt !Page: 19
+rem !ident if the input mode which builds up
+rem !identifiers and aogol words.  the identifier
+rem !is stored in two parts - [1] ident1, which is
+rem !the part of the identifier wafter the last 
+rem !space, and [2] ident2 which is the part
+rem !preceeding the last space.  each time a space
+rem !is encountered, ident1 is checked to see if it
+rem !is an algol word by allook.  if????? it is both
+rem !ident1 and ident2, if necessary, are
+rem !assigned internal identifiers.  if not,
+rem !ident1 is joined to ident2 and control
+rem !remains in ident.
+rem ! xr20  ident2 char count
+rem ! xr21  ident1 word count
+rem ! xr32  ident2 word count
+rem ! xr33  ident1 char count
+
+ident: bmi
+bru iddone !algol symbol terminates identifier
+bze
+bru idchk !space - check ident1 for algol word
+ext chmask !letter or digit treated here
+sta temp
+sxg 3
+bxh 2,3
+bru nwid1 !start new word of ident1
+sub o60 !subtract filler code from char
+bxl 1,3 !skip shift for last char in word
+sla 6
+add ident1,1 !add char to ident1
+inx 1,3 !increment character counter
+sta ident1,1
+bru input
+
+nwid1: bxh 10,1
+bru er2 !identifier too long
+inx 1,1
+letin: sla 12
+add o6060 !add filler code
+ldx zero,3 !set char counter to 0
+sta ident1,1
+bru input
+iddone: spb allook,3 !check ident1 for an algol word
+bru twoids !ident1 is an algol word
+sxg 4
+spb idlook,3 !look up ident2 in table and process
+sxg 2
+ldx modun,3 !set input mode to under
+lda symb
+bru symbol !process algol symbol
+twoids: sxg 2
+ejt !Page: 20
+bxh 1,2 !back off one character in source program
+bru twoid1
+lda xr21
+sbo
+sta xr21
+ldx two,2
+bru route
+twoid1: lda xr22
+sbo
+sta xr22
+bru route
+idchk: spb allook,3 !check indent1 for an algol word
+bru route
+ldx zero,1 !set ident1 to zero
+ldx two,3
+bru input
+rem !allook checks to see if ident1 is an algol
+rem !word
+rem !enter in group 2 from iddone and idchk
+
+allook: stx return,3 !save exit
+sta symb
+lda xr31
+bze
+bru notalg !ident1 = 0
+lda symb
+bze
+bru *+3
+al3: lda ident1+1
+bru *+5
+lda ident1+1
+cab ago
+bru *+2
+bru go
+sra 12
+sta xr23
+lda clist,3 !load code for first char of ident1
+sra 6 !a = index in allist to begin search
+bze
+bru notalg !no algol word begins with that letter
+sta xr23
+lda allist-1,3
+al1: ext wmask !trim to word
+cab ident1+1
+bru al2
+bru moralg !check remainder off word for a match
+bru notalg !ident1 is not an algol word
+al2: inx 1,3 !no match yet - check next word in list
+lda allist-1,3
+bmi
+bru al1
+ejt !Page: 21
+bru al2 !loop to find next word in allist
+moralg: ldx xr31,0 !ident1 word count
+lda allist,3 !x = next three characters in allist
+bpl
+bru mal1 !more word to check
+bxl 2,0
+bru found !work in table
+notalg: ldx modidn,3 !reset input mode to ident
+sxg 3
+bxl 1,1
+bru notal1 !ident1 = 0
+lda xr31 !ident1 word count
+sta test21
+lda xr30 !ident2 char count
+cab one
+lda seven !must fill in two characters a wrod
+bru hard21 !must fill in one character a word
+lda test21 !ident2 an integral number of words
+ext chmask !trim to ident1 ctr
+neg
+maq !q contains complement of no. or words to be
+lda xr32 !ident2 word count
+add locid2 !address of ident2
+ado !a = loc to store ident1
+mov ident1+1 !move ident1 to end of ident2
+ldx xr33,0 !ident2 char count = ident1 char count
+lda test21
+ext chmask
+add xr32
+sta xr32 !adjust ident2 word count
+bru out21
+hard21: add five
+sta xr31 !length of shift put in xr31
+lda xr30 !ident2 char count
+add xr33 !ident1 char count
+ado
+cab two
+bru *+3
+bru *+2
+sub three
+sta xr30 !ident2 char count = ident2+ident1 count mod
+ldx one,3 !xr23 running counter for ident1
+lda ident2,2
+maq
+loop21: lda ident1,3 !q has first characters of word, a the last
+sla 1 !left justify a register
+xaq
+sra 0,1 !first justify a register
+sld 0,1 !shift one or two characters into a register
+sta ident2,2 !store full word in ident2
+ldz
+srd 1 !right justify remaining characters in q
+lda test21
+ejt !Page: 22
+cab xr33 !exit loop if last word of ident1 was read
+bru last21
+bru last21
+inx 1,3 !increment index registers
+inx 1,2
+bru loop21
+fill21: add o60
+cab spbsp !check to see if last word is all spaces
+bru out21-2
+bru out21
+bru out21-2
+last21: bxh 2,0
+bru out21 !ident2 has integral number of words
+xaq !last word to a
+bxh 1,0
+bru fill21 !add fill for one character
+ext o7777 !trim to one character word
+add o6060 !add fill characters
+inx 1,2
+sta ident2,2 !store last word of ident2
+out21: bxh 11,2
+bru er2
+notal1: ldx return,1
+bru 2,1
+mal1: cab ident1+2
+bru notalg !second part of word does not match
+bru *+2 !first six characters match
+bru notalg
+lda allist+1,3
+bpl
+bru mal3 !check third part of word
+lda two
+mal2: cab xr31 !see if ident2 and algol word are same length
+bru notalg
+bru found !words are same length
+bru notalg
+mal3: cab ident1+3
+bru notalg
+bru *+2 !last three characters match
+bru notalg
+lda three
+bru mal2
+found: lda alid-1,3
+sta symb !symb = internal identifier for algol word
+sxg 3
+bxl 1,2
+bru found1 !ident2 = 0 - no identifier to process
+sxg 4
+spb idlook,3 !look up ident2 and process
+found1: lda modun !set input mode to undefined
+ejt !Page: 23
+sta xr23
+ldx return,3
+bru 1,3
+!check for go to with space as special case
+go: stx go1,1
+stx go2,2
+dld ch2
+dst go3
+spb char,3
+sub t
+bnz
+bru notgo
+spb char,3
+sub o
+bnz
+bru notgo
+spb char,3
+lqa
+bnz
+bru notgo
+lda goid
+sta symb
+laq
+bze
+bru found+2
+lda retdn
+sta return
+bru found+2
+notgo: ldx go1,1
+ldx go2,2
+dld go3
+dst ch2
+bru al3
+
+rem !    idlook finds the internal identifier
+rem !for the word in ident2.  words are put into
+rem !equivalence classes bu *mpy magic*, and then
+rem !the particular class searched for ident2.
+rem !idlook uses index group 4 for working storage
+rem !call by found, iddone
+rem !called in group 4
+
+idlook: stx temp,3 !save exit in register 3
+lda ident2+1
+maq
+mpy magic
+ext eqmask !a = equivalence class number of ident2
+sta xr41
+lda itable,1 !a = itable entry for first work in class
+bze
+bru noent !no entry in equivalence class
+ejt !Page: 24
+iloop: sta itemp !save itable entry
+ext etmask !a = index of alphanumeric ident in ftable
+sta xr42
+ldx one,3 !xr43 = running counter for ident2
+iloop1: lda etable,2
+bmi
+bru lastid !check last word in etable identifier
+cab ident2,3
+bru *+2 !ident2 and otable identifier do not match
+bru morid !identifiers match so far - check more
+iloop2: lda itemp !here to process next word in equiv class
+cab o2000
+bru notin !no more words in equivalence class
+bru *+1
+sra 10 !a = index of next itable entry in equiv
+sta xr41
+lda itable,1 !a = next itable entry in equivalcne class
+bru iloop
+
+morid: inx 1,2 !increment registers to look at next words
+inx 1,3 !     in ident2 and etable identifier
+bru iloop1
+
+lastid: ext sign !trim off minum sign indidcating last word
+cab ident2,3
+bru iloop2 !no match
+bru *+2 !identifiers match
+bru iloop2 !no match
+lda xr43 !check to see if identifiers are the same length
+cab xr32
+bru iloop2 !lengths not the same - no match
+bru idout !identifier round
+bru iloop2 !no match
+notin: lda iavail !iavail points to last even used loc in itable
+sta xr42
+add two
+sta iavail !update iavail
+add notype !add undefined type to form itable entry
+sub two
+sta itable+1,2 !store internal identifier for ident2
+sla 10
+add itemp
+sta itable,1 !set overflow pointer in previous word
+notin1: ldx xr32,3
+lda sign
+ory ident2,3 !set sign bit in last word of identifier
+lda xr32 !start to form move instruction
+neg
+maq !q = comp. of no. of words to be moved
+lda eavail !eavail points to last word filled in etable
+sub xr32 !a = loc in etable to fill ident2
+cab iavail !check to see if tables are full
+bru er3
+bru er3
+ejt !Page: 25
+sta eavail !update eavail
+sta itable,2 !store pointer to etable identifier
+add etablo
+mov ident2+1
+ldx xr42,1 !set xr41 to point to itable entry
+idout: ldx temp,3 !restore exit from idlook
+lda itable+1,1 !load identifier for variable
+
+rem !ncsto  stores a variable in the number
+rem !cellar, checks to see if two variables are
+rem !adjacent in the program, and sets the prev
+rem !flag to variable.
+rem !called by found, iddone, conin
+
+ncsto: sta temp
+bmi
+bru ncpsto
+ncsto1: lda xr01
+ado
+cab xr11
+bru *+3
+bru er4 !number cellar - symbol cellar full
+bru er4 !number cellar - symbol cellar full
+sta xr01
+sta xr42
+lda temp
+sta nc,2 !store variable in number cellar
+vcheck: lda prev
+sta prev2
+bmi
+bru er5 !adjacent expressions
+lmo
+sta prev !set prev variable
+bru 1,3 !exit from ncsto
+
+rem !no entry in equivalence class.
+
+noent: lda xr41
+sta xr42 !set register for notin
+add notype !add undefined to form itable identifier
+sta itable+1,1 !store internal identifier for ident23
+bru notin1
+nam !constant input and conversion routines
+ejt !Page: 26
+rem !const1 is the input mode which processes
+rem !the mantissa of constants.  the accumulated
+rem !value of the constant is stored in const.
+rem !bigc contains ten times the overflor from the
+rem !q register of const and is used to facilitate
+rem !computation.  ginc is 0 if no decimal pont
+rem !has been read, 1 otherwise.  dctr counts
+rem !number of digits after the point.
+
+const1:cab o10000
+bru con2 !character not a digit
+bru *+1
+ext chmask !trim to digit
+xaq
+lda const+1
+xaq !q = low order bits of const, a = digit
+mpy ten
+add bigc !add high order bits of constw + 10
+dst constx !store current value of constant
+bze
+bru con1 !constant less than 2exp10
+cab o3777
+bru *+3
+bru *+2
+bru char !too many digits in constant - ignore them
+maq
+mpy ten !for value of bigc to add after next digit
+xaq
+sta bigc
+con1: dld constx
+dst const
+lda dctr
+add dinc
+sta dctr !dctr = dctr+dinc = no. of places after point
+bru char
+con2: bze
+bru char
+cab expid !check for exponent sign
+bru *+2
+bru con3
+cab decid !check for decimal point
+bru outcon
+bru *+2
+bru outcon
+ldx dinc
+bnz
+bru er7 !two decimal points in constant
+ldo
+sta dinc !dinc=1
+lda rbit
+sta type !set type to real
+bru char
+rem !conexp is called when the first symbol of
+ejt !Page: 27
+rem !the constant is the exponent symbol
+
+conexp: sxg 2
+ldz
+sta dinc
+sta dctr
+sta exp
+ldo
+sta sgnexp
+maq
+dst const
+con3: ldx modc2,3 !set input mode to const2
+lda rbit
+sta type !set type to real
+bru input
+
+
+rem !const2 checks the next character after the
+rem !exponent character *ten* [typed as $] for
+rem !the sign of the exponent.
+
+const2: cab o10000
+bru con5 !character not a digit
+bru *+1
+ext chmask !trim to digit
+sta exp
+con4: ldx modc3,3 !set input mode to const3
+bru char
+con5: bze
+bru char !character = space
+cab plusid !check for sign of exponent
+bru *+2
+bru con4
+cab minid
+bru er7 !illegal constant format
+bru *+2
+bru er7 !illegal constant format
+lmo
+sta sgnexp !set sgnexp = -1
+bru con4
+
+
+rem !const3  is the inhlt mode which builds up
+rem !the exponent of the constant.
+
+const3: cab o10000
+bru con6 !character not a digit
+bru *+1
+ext chmask !trim to digit
+xaq
+lda exp
+xaq
+mpy ten
+xaq
+ejt !Page: 28
+cab d77
+bru *+3
+bru er9 !exponent too large
+bru er9 !exponent too large
+sta exp !store current value of exponent
+bru char
+con6: bnz
+bru outcon !character not a space
+bru char
+
+rem !condec  is called when the first character
+rem !in the constant is the decimal point
+
+condec: ldz
+maq
+dst const
+sta dctr
+sta exp
+sta bigc
+ldo
+sta sgnexp
+sta dinc
+lda modc1
+sta xr23
+lda rbit
+sta type
+bru input
+rem !outcon  decides what to do with the constant
+
+outcon: sta symb ! save character terminating constant
+sxg 4
+spb convrt,1 !bcd-binary
+fst const
+fld const
+ldx xr11,2
+lda sc,2 !check to see if the constant is signed
+cab upid !unary plus identifier
+bru *+2
+bru conpl
+cab umid !unary minus identifier
+bru *+2
+bru conmin
+outc1: fst const !store value of constant
+croute: lda cmode
+cab zero
+bru abcon !constant is an array bound in declaration
+bru dacon !constant is in a data declaration
+rem !     normal source program constants are
+rem !treated here by looking them up in the
+rem !constant cellar and entering them in the
+rem !cellar if necssary
+ldz
+cloop: sta xr41
+cab cavail
+ejt !Page: 29
+bru *+2
+bru newcon !constant not in constant cellar
+lda const
+cab cclo,1 !match constant against entry in cellar
+bru *+2
+bru mocon !check second half of constant
+cloop1: lda xr41
+add two !increment counter to check next constant
+bru cloop !in cellar
+conmin: maq ,a
+fmp fmone !change sign of constant
+conpl: lda xr11 !symbol cellar counter
+ado
+sta xr11 !erase sign of constant from symbol cellar
+bru outc1
+mocon: lda const+1
+cab cclo+1,1
+bru cloop1 !no match
+bru conin !match
+bru cloop1 !no match
+newcon: cab conlf1
+bru *+3
+bru er10 !too many constants
+bru er10 !too many constants
+add two
+sta cavail !increment pointer to next available loc
+dld const
+dst cclo,1 !store constant in constant cellar
+conin: lda xr41
+add conlo !form address of constant in cellar
+add type
+add cbit !form identifier for constant
+spb ncsto,3 !store identifier for constant in nc
+outc2: sxg 2
+ldx modun,3 !set input mode to undefined
+lda symb
+bru undef !process next character in source program
+
+rem !convert  converts the information built up
+rem !by the input routines into a floating point
+rem !constant.
+rem !call by outcon
+
+convrt: lda sgnexp
+bpl
+bru cvt1
+lda exp !change sign of exponent
+neg
+sta exp
+cvt1: lda dinc !check for decimal point
+bze
+bru cvt2 !no decimal point
+lda exp !adjust exponent by number of decimal places
+sub dctr
+ejt !Page: 30
+sta exp
+cvt2: dld const !check for more than 30 bits in constant
+ext o3777
+bze
+bru cvt3 !less than 30 bits
+nor 8 !normalize for more than 30 bits
+lda 0
+sla 11 !pout number of shifts into exponent position
+sta binexp !set binary exponent
+lda xr00
+sbo
+sta xr43 !number of shifts less one
+lda const
+srd 0,3 !shift all but one place
+dad dblone
+srd 1 !completes rounding of oversize constant
+dst const
+ext o3777 !check to see if more shift needed
+bnz
+lda o2000 !fudge for special case of constant all 1 bit
+add binexp !add binary exponent computer by shift
+cvt3: add const !add constant to exponent
+add d3088 !add a binary exponent of 30
+sta const
+lda exp
+sta expflg !save signed exponent
+bmi
+neg
+sta exp
+fld const
+fad fzero
+ext cmask !trim to last three bits of exponent
+sla 1 !double it
+sta xr43
+spb cvtmul,2
+lda exp
+ext seven !trim off last three bits
+ldx d14,3 !set xr43 to location of 10exp7 in table
+sra 2
+cvt7: sra 1
+sta exp
+bze
+bru 1,1 !conversion is completed
+inx 2,3 !advance counter by one power of ten
+bev
+bru cvt7 !skip this power of 10
+spb cvtmul,2 !adjust by power of 10
+lda exp
+bru cvt7
+cvtmul: lda expflg
+bmi
+bru *+4 !negative exponent
+maq ,a
+fmp ctable,3 !overflow may occur here
+ejt !Page: 31
+bru 1,2
+cqx
+fdv ctable,3 !underflow may occur here
+bru 1,2
+
+ktrue: ldz
+bru *+2
+kfalse: lmo
+maq !clear a register
+sta symb !set symb equal to a space
+xaq !logical value back to a
+dst const
+lda bbit !boolean typoe bit
+sta type
+sxg 4
+bru croute !process constant
+nam !transfer mechanism
+ejt !Page: 32
+rem !     route is called into use each time a new
+rem !symbol is read.  it decides whether the
+rem !context of the symbol is legal and determines
+rem !the action to be taken according to the
+rem !symbol read and the last one entered in the
+rem !symbol cellar
+
+route: sxg 1
+lda prev
+sta prev2
+bmi
+bru preexp !symbol is preceeded by an expression
+lda symb !previous word was an algol word or symbol
+ext pmask !trim to previous tag
+cab o2000
+bru pairok !symbol justaposition is legitimate
+bru pmchk !symb must be a unary + or - to be legal
+pairok: lda symb
+sta prev !update prev
+ext o17777 !trim to group number
+cab gr5
+bru rpt !symbol in groups 1 to 4
+bru setgr4 !symbol in group 5 - change group to 4
+!     and store symb in symbol cellar
+bru trsym !symbol in group 6 - transfer on it
+rpt: sub sc,1 !begin to match group no with last entry in sc
+add o10000 !these two instructions nullify the influence
+ext o17777 !     of the low order bits
+cab zero
+bru stosc !symb group less than sca group - store symb
+bru subrte !symb group - sca group - fiddle some more
+bru kmpsc !symb group greater than sca group - compile
+
+stosc: lda xr11 !symbol cellar counter
+sbo
+cab xr01 !number cellar counter
+bru er4 !number and symbol cellars full
+bru er4 !number and symbol cellars full
+sta xr11 !increment symbol cellar counter
+read: lda symb
+sta sc,1 !store symb in symbol cellar
+bru input
+setgr4: lda symb !setgr4 sets the group of symb to group 4
+ext amask
+add gr4
+sta symb
+bru stosc
+
+rem !kmpsc  transfer control to the particular
+rem !section of the compiler designed to compile
+rem !instructions corresponding to the last
+rem !entry in the symabol cellar.
+ejt !Page: 33
+kmpsc: lda retrpt !set return to repeat
+sta return
+lda sc,1
+ext chmask !trim to symbol number
+add xtag !add bit for transfer in upper 8k
+sta xr12
+bru mcomp-1,2 !transfer on last entry in symbol cellar
+preexp: lda symb
+ext pmask !trim to previous tag
+cab o2000
+bru er11 !illegal symbol following an expression
+bru pairok
+bru pairok
+
+rem !pmchk  checks to see if the symbol is a
+rem !unary + or -
+
+pmchk: lda symb
+ext o17777 !trim to group and subgroup number
+cab gr1s3 !group 1, subgroup 3
+bru er12 !illegal symbol juxtaposition
+bru *+2 !symb is + or -, see if it is unary
+bru er12 !illegal symbol juxtaposition
+lda prev
+ext umask !trim to unary tag
+bze
+bru er12 !illegal expression
+lda symb
+add two !contert to a unary + or - identifier
+sta symb
+sta prev !update prev
+bru stosc !store identifier in symbol cellar
+
+rem !subrte  determines action if symb and the
+rem !last entry in the symbol cellar are in the
+rem !same group and subgroup
+
+subrte: lda symb
+ext o17777 !trim to group and subgroup
+cab gr3s1 !group 3, subgroup 1
+bru rte1
+bru er13 !illegal expression of form  not not
+cab gr4
+bru rte2 !symbol in group 3 - compile one operation
+bru kmpsc !symb in group 4 - compile last entry in sc
+rte1: cab gr2
+bru *+2
+bru er14 !illegal relational expression
+rte2: lda retrd !prepare to set return to read
+bru kmpsc+1 !compile last entry in sc and store symb in
+!trsym transfers according to symb
+trsym: lda symb
+ext chmask !trim to symbol number
+ejt !Page: 34
+add xtag !add bit for transfer in upper 8k
+sta xr12
+bru msymb-36,2
+
+rem !repeat causes symb to generate another
+rem !compilation sequence after erasing last
+rem !entry in the symbol cellar
+repeat: inx 1,1 !erase last entry in symbol cellar
+lda symb
+bru rpt
+nam !compilation of expressions  --  loads
+ejt !Page: 35
+rem !loadgn  is the chief subroutine used to
+rem !pick up the arguments from the number cellar
+rem !for compiling operations.  normally a load of
+rem !the last entry in the number cellar will be
+rem !compiled and the address of the second
+rem !argument computed.  however if the second
+rem !argument is already in the a or ax register,
+rem !and if a is not zero on entry to loadgn,
+rem !then the order of the arguments will be
+rem !switched so as to eliminate the superfluous
+rem !store-load sequence.
+rem !  because of the order in which things are
+rem !put in nc, the second argument is examined
+rem !first.
+rem !entry in group 1, exit in gr 0
+
+loadgn: sta switch !switch=1 if switch permissable, 0 otherwise
+sxg 0
+spb fetch,2 !fetch second argument from nc
+bnz
+bru setop !nc entry no right for switch
+lda switch !last entry in nc is address of temp store
+bze
+bru setop !switch not permitted
+lmo
+sta switch !set flag to switch operands
+setop: lda nc,1
+ext amask !trim to address
+sta opa !opa = address of second argument
+lda ax
+sta opax !opax = array flag for second argument
+lda nc,1
+ext o37777 !trim to type less constant bit
+sta type !type = type of second argument
+lda xr01 !number cellar counter
+sbo
+sta xr01 !erase 2nd argument from number cellar
+spb fetch,2 !fetch first argument from nc
+rem !if a=0 then the first argument is already in
+rem !the a or ax register at run time, so that
+rem !the store-load sequence can be eliminated.
+rem !if a is not 0, then the 1st arg is not in
+rem !the registers, and a check is made to see if
+rem !switching the order of the arguments is
+rem !called for.
+bze
+bru load1 !first argument in runtime ax register
+lda switch
+bmi
+!switch is minus if 2nd arg is in ax
+bru gosw !switch order of arguments to eliminate
+!     extra instructions from program.
+spb loadst,2 !store load instruction for first argument
+bru load1
+gosw: lda nc,1 !switch information for second argument
+ejt !Page: 36
+ext amask !trim to address
+sta opa !address of first argument
+lda ax
+sta opax !array flag for first argument
+load1: ldz
+sta tst !set temporary storage indicator to 0
+lda type !start to adjust type of computed expressions
+cab rbit
+bru tarith !type = integer
+bru tarith !type = real
+lda nc,1 !type = bolean - check for matching type
+ext bmask !trim to boolean type bit
+bze
+bru er15 !mixed boolean and arithmetic types
+load2: lda opax
+bze
+bru *+3 !second argument not an array
+spb write,2 !store index register load for 2nd arg
+lda xtag !tag for xr1
+add opa !address address of second argument
+ldx xr12,3 !load exit from loadgn
+bru 1,3 !exit from loadbh
+tarith: lda nc,1 !check for arithmetic type in nc
+ext o37777 !trim to type less expression bit
+cab rbit
+bru load2 !type = intgr, espression type = 1sst arg type
+bru *+2 !type = real
+bru er15 !type = boolean - mixed type error
+lda rbit !real type bit
+ory type !set type of expression to real
+bru load2
+
+rem !fetch generates the information necessary for
+rem !a *fld* of the last element in the number
+rem !cellar
+
+fetch: ldz
+sta ax !ax = array indicator
+lda nc,1 !load last entry in number cellar
+bmi
+bru fetchp !no-argument procedure
+cab lbit
+bru *+3 !legal variable to load is in nc
+bru er16 !illegal variable
+bru er16 !illegal variable
+cab abit !array tag bit
+bru trib !type = real, intgr, or boolean
+bru *+1
+cab ssbits !subscripted array bits
+bru er17 !array not subscripted
+bru *+1
+ext amask !trim to address
+add *ldx1* !add *ldx 0,1* to form index load

@@ -1,0 +1,2006 @@
+ejt !Page: 121
+rem !darray  initializes an array declaration
+rem !or specification
+rem !symb = array
+
+darray: lda sc,1
+cab begid !check for block entry
+bru *+2
+bru ablock
+cab realid
+bru da1 !no type specified for array
+bru dar !real array
+cab boolid
+bru dai !integer array
+bru dab !boolean array
+da1: lda rbit
+da2: add abit
+sta atype !set array type
+lda xr01
+sta astart !astart = nc lod of first array in list
+lda own
+bze
+spb indec,3 !store bru around declaration
+lda pavail
+bev
+spb write,2 !ajust pavail to even location for constants
+ldx whami,2
+bru *+1,2
+bru *+4 !body
+bru *+5 !declaration
+bru setgr4 !do not zero noel if specification
+bru er39 !illegal occurrence of declarator
+lda declid
+sta whami !set whami to declaration
+ldz
+sta noel
+lda dstat
+bze
+bru er32 !declaration in middle of block
+bru setgr4 !store array identifier in sc
+
+dar: inx 1,1 !erase real from sc
+bru da1
+dai: inx 1,1 !erase integer from sc
+ldz
+bru da2
+dab: lda bbit
+inx 1,1 !erase boolean from sc
+bru da2
+ablock: spb block,3 !enter block
+bru da1
+
+rem !karray checks for the end of an array
+rem !declaration or specification.
+rem !call from mcomp when sca = array
+ejt !Page: 122
+karray: lda whami
+cab specid
+bru *+2
+bru speca !specify an array
+lda noel
+bnz
+bru karr1 !not in list of array identifiers
+spb blist,3 !enter identifier in bs if necessary
+sxg 1
+karr1: ldz
+sta noel
+spb whosym,2 !check for end of declaration
+ldx declo,2
+bxl 1,2
+bru er33 !illegal declaration
+lda pavail
+ado
+sto 0,2 !store address of transfer
+ldz
+sta declo
+sta own
+bru repeat
+rem !bbrack  determines wheher a left bracket
+rem !belongs to an array declaration, or to an
+rem !array or switch call.  if it is in an array
+rem !declaration, computation of the subscript
+rem !bounds is initialized.
+
+bbrack: ldx whami,2
+bru *+1,2
+bru *+4
+bru *+9 !declaration--cannot be array call
+bru er6 !illegal specification
+bru er56 !illegal procedure  declaration
+ldx xr01,2
+lda nc,2
+ext acmask !trim to high order type bits
+cab abit
+bru *+2
+bru barray !begin compiling an array call
+lda sc,1
+cab arrid !identifier for array
+bru swtchb !initiate a switch call
+bru *+2 ![ occurs in array declaration
+bru swtchb
+ldz
+sta cflag !set colon flag
+lmo
+sta cmode !set constant mode to array bound
+sta dinam !constant-only flag
+fld fone
+fst asize !set size of array = 1
+spb write,2 !save location for number of subscripts
+lda pavail
+ejt !Page: 123
+sta sslo !sslo = location of first subscript
+spb write,2 !save location for array lo
+lda dbid !identifier for declaration bracket
+sta symb
+spb blist,3 !enter identifier in bs if necessary
+sxg 1
+bru stosc
+
+rem !abcon  processes an array bound
+abcon: lda type
+bze
+bru dacon !type is integer
+spb round,2 !round a real bound
+fst const
+bru dacon
+
+rem !bcolon  checks to see if a colon is part of
+rem !an array declaration or part of a label.
+
+bcolon: lda declo
+bze
+bru klabel !compile a label
+lda cflag
+bnz
+bru er36 !too many colons in bound pair
+ldo
+sta cflag
+dld const
+dst lb !set lower bound of bound pair
+bru input
+
+rem !kab  generates the subscript constants
+rem !for an array declaration,
+rem !called when an array declarationleft-
+rem !bracket is compiled
+
+kab: lda cflag
+bze
+bru er37 !array bound pair not properly inputted
+ldz
+sta cflag
+fsu lb !upper bound is in ax - form difference
+fst lb
+bar bmi,7
+bru er38 !upper bound less than lower bound
+fad fone
+fst junk !junk = range of current subscript
+maq ,a
+fmp asize
+fst asize !update size of array
+lda junk !first constant = up - lb + 1
+spb write,2
+lda junk+1
+spb write,2
+ejt !Page: 124
+fld const
+fad fone !form upper bound plus one
+fst junk
+lda junk
+spb write,2
+lda junk+1
+spb write,2
+lda noel
+ado
+sta noel !increase number of subscripts by one
+lda symb
+cab comid
+bru *+2
+bru input !another bound pair is coming
+cab rbid !right bracket identifier
+bru er33 !illegal declaration
+bru *+2 !end of subscript list
+bru er33 !illegal declaration
+sxg 0
+fld asize
+spb unflot,2 !convert to an integer in a register
+sla 1 !double for form size of array
+sta asize
+abloop: lda nc,1
+ext amask !trim to address of array id in itable
+sta xr02
+lda sslo
+sta xr03
+add atype
+sta itable+1,2 !set itable identifier to point to constants
+lda own
+bnz
+bru ownary !own array declaration
+lda vavail
+sub asize
+cab pavail
+bru er1 !storage exhausted
+bru er1 !storage exhausted
+cab plf
+sta plf !vavail is upper bound for program storage
+bru *+1
+sta vavail !decrease vbavail by size of array
+ablp2: sta 1,3 !store array lo in array heading
+lda noel
+sta 0,3 !store number of subscripts in array heading
+lda xr01
+sbo
+sta xr01 !erase name of array from number cellar
+cab astart
+bru er33 !nc is really fouled up
+bru about !list of arrays is exhausted
+lda pavail !duplicate array heading for next array
+ado
+sta sslo
+ejt !Page: 125
+abmove: lda 0,3
+spb write,2 !move one word of heading
+inx 1,3
+lda xr03
+cab sslo
+bru abmove !more words left to move
+bru abloop !moving completed
+about: lmo
+sta prev !set prev to iondicate a variable
+ldo
+sta cmode !set constant mode to normal
+sxg 1
+inx 1,1 !erase bracket from sc
+ldz
+sta dinam
+bru input
+
+ownary: lda pavail
+ado
+sta own
+sbo
+add asize
+sta pavail
+cab plf
+bru *+3
+bru *+1
+spb adjust,2
+lda own
+bru ablp2
+ejt !Page: 126
+rem !a switch declaration generates the following
+rem !heading for the switch --
+rem !     stx swexit   2
+rem !     spb unfsub   2     convert subscript
+rem !     sta xr02
+rem !     bnz
+rem !     bmi
+rem !     bru swerr          subscript too small
+rem !     sub *+4
+rem !     bpl                subscript too large
+rem !     bru swerr
+rem !     bru list-1   2
+rem !     [ length + 1 ]
+rem !     $$$$$              computation of desig-
+rem !     $$$$$              national expressions
+rem !     $$$$$              occurring in switch
+rem !     $$$$$              go here
+rem !list bru xxxxx          transfer table
+rem !     bru xxxxx
+rem !        etc.
+rem !a switch call will spb to the first
+rem !instruction in the heading.  if the subscript
+rem !is in bounds, the desired transfer will occur
+rem !if it is not, then the switch acts as a nop
+rem !with swerr returning control to the location
+rem !following the switch call.  to insure the
+rem !proper error exit, switch calls occurring in
+rem !other switch declarations do not spb to the
+rem !switch called, but reload xr01 with the
+rem !proper exit and bru to the switch called.
+rem !
+rem !
+rem !bswtch  initialized the declaration of a
+rem !switch.
+rem !called by bassgn
+
+bswtch: spb indec,3 !store bru around declaration
+lda whami
+cab declid
+bru er33 !illegal declaration
+bru *+2
+bru er33 !illegal declaration
+sbo
+sta whami !set whami to body
+lda swstx !stx swexit,1 to save loc of spb to switch
+spb write,2 !store as first word of switch heading
+lda swtype
+spb define,2 !define last entry in nc as a switch
+lda pavail
+sta xr03
+add ten
+sta pavail
+cab plf
+ejt !Page: 127
+bru *+3 !enough room left for heading
+bru *+1
+spb adjust,2 !see if there is more room
+lda dm9
+lqa
+add pavail
+mov swhead !store switch heading in program
+lda pavail
+sto 6,3 !fill in reference to length of switch
+ado
+sta sloc !save address of next available location
+lda xr01
+sta astart !mark beginning of list of labels in nc
+bru input
+
+rem !dswtch  processes each label as it is added
+rem !to the switch list, and generates the
+rem !transfer table at the end
+
+dswtch: lda whami
+cab specid
+bru *+2
+bru specs !specify a switch
+sxg 0
+lda nc,1 !last label read in
+ext o17777
+cab detype
+bru *+2
+bru dsw4 !designational expression in switch
+lda xr41
+sta nc,1
+dsw1: spb whosym,2 !check for end of declaration
+ldx declo,2
+bxl 1,2
+bru er33 !nested declarations
+lda sloc
+sbo
+sto 10,2 !store reference to transfer list
+lda xr01
+sta sloc !set sloc = pointer to last entry in nc
+sub astart !form number of entries in list
+ado
+sta 11,2 !store length of switch -2
+add pavail
+sto 0,2 !fill in transfer around declarations
+lda astart
+ado
+dsw2: cab sloc
+bru dsw3 !more elements left in switch list
+bru dsw3 !more elements left in switch list
+ldx astart,1 !reset number cellar counter
+ldz
+sta declo !reset declo
+sxg 1
+ejt !Page: 128
+bru repeat
+dsw3: sta xr01
+lda nc,1
+sta xr41 !set pointer to itable entry
+sub o2000
+bpl
+bru *+4
+ldx xr41,2 !restore identifier of label to nc
+lda itable+1,2
+sta nc,1
+spb goto,3 !generate bru in transfer list
+lda xr01
+add two !increment number cellar counter for next el
+bru dsw2
+dsw4: lda sloc
+add lbit
+add cbit !set type equal to defined label
+sta nc,1 !generate label for address of compuation
+lda pavail !     of designational expression
+ado
+sta sloc !reset sloc to next available location
+bru dsw1
+
+
+rem !specify a string
+dstrng: spb spec,3
+bru er52 !illegal call by value
+lda abit
+ory itable+1,3 !add specified bit to f.p.-id in itable
+lda sttype
+bru spec2+2 !put type in thunk link and continue
+nam !blocks
+ejt !Page: 129
+rem !a begin must follow a semi-colon, do then,
+rem !  else, or begin
+rem !
+rem !information in the syumbol cellar for a
+rem !  compound statement . . .
+rem !     sc    begin-id
+rem !
+rem !for block
+rem !     sc    begin-id [tagged]
+rem !     sc+1  bsc
+
+dbegin: ldo
+sta dstat !set declaration status to -legal-
+lda xr01
+bnz
+bru er35 !illegal occurrence of -begin.
+ldx whami,2
+bru *+1,2
+bru setgr4
+bru er35
+bru er6
+bru er33
+bru setgr4
+
+kbegin: lda smask
+sta tsflag !fudge temp pointer--for fudge at eparam
+lda xr01
+bnz
+bru er30 !trouble
+lda symb
+cab scid
+bru *+2
+bru input !symb is a semicolon
+cab endid
+bru er30 !trouble
+bru *+2
+bru er30 !trouble
+inx 1,1 !erase begin-id from symbol cellar
+lda sc-1,1 !check for block begin
+ext comask
+bze
+bru begin1 !not block
+spb unblok,3
+begin1: bxh 63,1
+bru wrapup !exiting outermost block
+sxg 2
+spb kmntlp,3 !scan for end of comment following end
+sta symb !symbol terminating comment
+ldx modun,3 !set input mode to undefined
+bru route
+ejt !Page: 130
+rem !reassignment of identifiers with blocks is
+rem !kept track of in the block symbol list - bs.
+rem !the beginning of each block is marked by a
+rem !0 in the bs and a pointer in the sc to this
+rem !0, along with the location to reset variable
+rem !storage to.  all identifiers which are re-
+rem !assigned with the block have their old
+rem !itable identifiers put in the bs together
+rem !with the pointer to the itable location.
+rem !each label encountered within the block is
+rem !also put in the bs with a - sign.  Upon
+rem !entry to a new block, all these labels are
+rem !temporarily undefined by storing their ids
+rem !in the bx and changing the itable type to
+rem !notype.  upon exit from a block, all labels
+rem !local to that block are undefined and all
+rem !identifiers in the outer block regain their
+rem !original significance.
+rem !
+rem !blist  puts the old values of identifiers
+rem !which are having their types changed into
+rem !the bs.
+
+blist: sxg 0
+lda depth
+bnz
+bru blist1 !identifier is not in outermost block
+lda nc,1
+ext o17777
+cab notype
+bru er34 !identifier is defined twice in outer block
+bru blist2
+bru er34 !identifier is defined twice in outer block
+blist1: ldx bsc,2 !get set to enter identifier in bs
+bxh bslf,2
+bru er3 !bs full
+inx 2,2
+stx bsc,2
+lda nc,1 !old identifier
+sta bs+1,2 !store in bs
+lda xr41 !pointer to itable entry
+sta bs,2 !store pointer in bs
+add notype
+sta nc,1 !set type of new identifier to notype
+ldx xr02,3
+lda xr03
+sub two
+sta xr03
+lda bs,3
+cab zero
+bru *-5
+bru blist2
+cab xr41
+ejt !Page: 131
+bru *-8
+bru er34 !doubly defined in this block
+bru *-10
+blist2: ldx xr13,3
+bru 1,3 !exit from blist
+ejt !Page: 132
+rem !block  is called upon entry into a new block
+rem !it undefines all labels in the outer block
+rem !and sets the markers for the new block.
+
+block: lda xr11
+stx xr40,3
+sbo
+sta xr11
+cab xr01
+bru er4 !number cellar - symbol cellar full
+bru er4 !number cellar - symbol cellar full
+lda sc+1,1
+add ctag
+sta sc,1 !store symbol for beginning of block
+ldx bsc,2
+bxh bslf,2
+bru er3 !no more room left in bs
+ldz
+sta bs+4,2 !put marker in bs
+lda vavail
+sta bs+3,2 !save vavail in bs
+sta bs+5,2
+lda pblok
+sta bs+2,2
+lda bsc
+add four
+sta bsc !update bsc
+sta sc+1,1 !store pointer to lo of list in bs
+sta pblok
+block1: lda bs,2 !pick up identifier in outer block
+cab zero
+bru block3 !pointer belongs to a label
+bru block4 !end of scan to fix up labels
+block2: lda xr12
+sub two !decrement index to look at next element
+sta xr12
+bru block1
+block3: sta xr13 !=ponter to itable entry
+lda itable+1,3
+sta bs+1,2 !save itable entry
+lda notype
+add bs,2
+chs
+sta itable+1,3 !set itable identifier to notype
+bru block2
+block4: lda depth
+ado
+sta depth !increase count of depth of nexting
+ldx xr40,3
+bru 1,3
+ejt !Page: 133
+rem !nblok  plugs away until the status qho has
+rem !been restored on exit from a block
+unblok: sxg 4
+ldx xr11,1
+lda sc,1 !ponter to lo in bs for block
+sta xr42 !temporary bso
+sub four
+sta temp
+sta xr41 !keep register for restting bsc
+lda bs-2,2 !ponter to lo of list for outer block
+sta xr43
+sta pblok
+lda vavail !get lowest value vavail has had in this block
+cab bs-1,2
+bru *+3 !present vavail is it
+bru *+1 !previous lowest is it
+lda bs-1,2 !previous lowest is it
+cab bs-1,3 !got it.  if lower than similar value for
+sta bs-1,3 !  outer block, update.
+bru *+1
+maq !q = minimum for this block
+lda bs+1,2 !vavail upon entry to this block
+bmi !-f indicates procedure declaration
+laq !if tagged, reset to minimum instead
+sta vavail
+
+unb1: inx 2,2 !loop to undefine variables local to block
+lda bsc
+cab xr42
+bru unb10 !end of loop
+bru *+1
+lda bs,2
+sta xr43 !ponter to itable entry for identifier
+bmi
+bru unb2 !entry is for a label
+lda bs+1,2
+sta itable+1,3 !reset itable identifier for non-label
+bru unb1
+
+rem !entry is label
+
+unb2: lda itable+1,3 !check to see if label is defined in block
+ext dmask
+bze
+bru unb3 !horrors, it wasnt
+lda notype
+add xr43
+chs
+sta itable+1,3 !destroy label
+bru unb1
+rem !entry was not defined - must be defined in
+rem !outer block
+unb3: lda bs,2
+chs
+ejt !Page: 134
+cab bs+2,2
+bru *+2
+bru er34a !id has non-label significance outside block
+lda itable+1,3 !start scan back through outer block to see
+sta itemp !     if label appeared there
+ext o17777
+sta type !type can be label, switch, or data
+ldx temp,3 !set ponter to last element in outer block
+unb4: lda bs,3
+cab zero
+bru unb5 !entry in outer block is a label
+bru unb4.5 !end of outer block - label not in it
+chs !not a label - do some error checking
+cab bs,2
+bru unb5.5 !ok so far
+bru er34 !id defined twice in outer block
+bru unb5.5
+unb4.5: lda bs,2 !add label to list for outer block
+inx 2,1
+sta bs,1
+bru unb1
+unb5: cab bs,2 !check to see if labels match
+bru *+2
+bru unb6 !they do
+unb5.5: lda xr43
+sub two
+sta xr43
+bru unb4 !continue scan through outer block
+unb6: lda bs+1,3 !identifier in outer block
+ext o37777
+cab type
+bru er34 !id defined twice in outer block
+bru *+2
+bru er34 !id defined twice in outer block
+lda bs+1,3
+ext amask
+sta junk !save defining address of label in outer block
+lda noob
+sbo
+sta noob !decrease count of undefined objects
+lda bs+1,3
+ext dmask
+bze
+bru unb8 !label referenced bu undefined in outer block
+lda itemp !label defined in outer block
+ext amask
+sta xr43 !pointer to last el in chain in inner block
+unb7: lda 0,3 !pick up element in chain
+ext amask
+sta itemp !save ponter to next element in chain
+lda junk
+sto 0,3 !fill in address
+ldx itemp,3
+bxh 2000,3
+ejt !Page: 135
+bru unb7 !more in chain
+bru unb1 !all references to label are filled in
+unb8: ldx junk,3 !pointer to last el in chain in outer block
+lda 0,3 !scah to find itable entry
+ext amask
+cab o2000
+bru unb9 !found pointer to itable
+bru *+1
+sta xr43
+bru unb8+1
+unb9: lda itemp
+sto 0,3 !tack two chains together
+bru unb1
+
+unb10: stx bsc,1 !reset bsc at end of first loop
+ldx temp,2 !loop to restore labels in outer block
+unb11: lda bs,2
+cab zero
+bru unb13 !restore a label
+bru unb14   !end of loop
+unb12: lda xr42 !loop to look at next elements
+sub two
+sta xr42
+bru unb11
+unb13: sta xr43 !pointer to itable identifier
+lda bs+1,2
+sta itable+1,3 !restore itable identifier
+bru unb12
+unb14: lda depth
+sbo !decrease depth count
+sta depth
+sxg 1
+inx 1,1 !erase bsc
+bru 1,3
+nam !transfer calls
+ejt !Page: 136
+mcomp: bru kexp !compile exponentiation
+bru kmult !compile multiplication
+bru kdiv !compile division
+bru ksidiv !compile special integer divide
+bru kplus !compile addition
+bru kminus !compile subtraction
+bru return !ignore unary +
+bru kumin !compile unary minus
+bru klt !compile less that
+bru klte !compile less than or equal
+
+bru kequal !compile equal
+bru kneq !compile not equal
+bru kgte !compile greater than or equal
+bru kgt !compile greater than
+bru knot !compile not
+bru kand !compile and
+bru kor !compile or
+bru kimply !compile imply
+bru kequiv !compile equiv
+bru kthen !compile then
+
+bru kelse !compile else
+bru kstep !compile step
+bru kuntil !compile until
+bru kwhile !compile while
+bru kdo !compile do
+bru value !value specification
+bru yoicks !*****  togo debugging routine
+bru kab !compile array bound
+bru kswtch !compile a switch call
+bru kparam !compile procedure parameter
+
+bru kprint !compile outputprocedure
+bru kinput !comput input procedure
+bru kfct !compile standard procedure call
+bru dlabel !specify a label
+bru dstrng !stecify a string
+bru kgoto !compile toto
+bru kbegin !compile begin
+bru dproc !declare a procedure
+bru kif !compile if
+bru kfor !compile a for list element
+
+bru kassgn !compile assignment
+bru kparen !compile left parenthesis
+bru ksubsc !compile subscript
+bru declar !declare a real variable
+bru declar !declare an integer variable
+bru declar !declare a boolean variable
+bru karray !adjust list of arrays being declared
+bru dswtch !adjust switch declaration
+bru kdata !compile data declaration
+ejt !Page: 137
+msymb: bru bgoto !reset declaration status
+bru dbegin !initiate compound statement [ or block ]
+bru bproc !initiate procedure declaration
+bru bif !initiate a conditional
+
+bru bfor !initiate a for statement
+bru bassgn !branch on assignment
+bru bparen !branch on left parenthesis
+bru bbrack !branch on left bracket
+bru dreal !initiate rel declaration
+bru dintgr !initiate integer declaration
+bru dbool !initiate boolean declaration
+bru darray !initiate array declaration
+bru iswtch !initiate switch declaration
+bru ddata !initiate a data declaration
+
+bru down !declare own variable
+bru kcmnt !compile comment
+bru bapos !branch on apostrophe
+bru bquote !branch on quote
+bru bcolon !branch on colon
+bru conexp !enter constant routine - symb = $
+bru condec !enter constant routine - symb = ,
+bru ktrue !generate boolean constant true
+bru kfalse !generate coolean constant false
+
+bapos: bru er41 !*****  not in compiler yet *****
+nam !compile-time error routine
+ejt !Page: 138
+rem !these routines load a with an identifying
+rem !code and then branch to error, which stores t
+rem !the code and line-number in the object
+rem !program area for processing at run-time
+er1: ldo !storage exhausted
+bru error
+er2: lda two !identifier too long
+bru error
+er3: lda three !too many symbols
+bru error
+er4: lda d4 !expression too complicated
+bru error
+er5: lda d5 !adjacent expression
+bru error
+er6: lda d6 !illegal specification
+bru error
+er7: lda d7 !two decimal ponts in constant
+bru error
+er8: lda d8 !constants only
+bru error
+er9: lda d9 !exponent of constant too large
+bru error
+er10: lda d10 !too many constants
+bru error
+er11: lda d11 !illegal symbol after expression
+bru error
+er12: lda d12 !illegal symbol sequence
+bru error
+er13: lda d13 !two nots
+bru error
+er14: lda d14 !two relations together
+bru error
+er15: lda d15 !mixed boolean and arithmetic types
+bru error
+er16: lda d16 !illegal variable
+bru error
+er17: lda d17 !array not subscripted
+bru error
+er18: lda d18 !illegal left part variable
+bru error
+er19: lda d19 !illegal subscript
+bru error
+er20: lda d20 !error--suspect missing close bracket
+bru error
+er21: lda d21 !number of subscripts wrong
+bru error
+er22: lda d22 !error--suspect missing --then--
+bru error
+er23: lda d23 !non-boolean expression following --if--
+bru error
+er24: lda d24 !error--suspect missing semicolon
+bru error
+er25: lda d25 !messy conditional
+bru error
+ejt !Page: 139
+er26: lda d26 !illegal label
+bru error
+er27: lda d27 !error--suspect missing close paren
+bru error
+er28: lda d28 !data block name missing
+bru error
+er29: lda d29 !error in procedure call
+bru error
+er30: lda d30 !trouble
+bru error
+er31: lda d31 !missing data
+bru error
+er32: lda d32 !declaration should follow begin
+bru error
+er33: lda d33 !illegal declaration
+bru error
+er34a: lda bs,2
+sta xr41 !fudge
+er34: lda erx1
+bnz wrapup
+lda xr41
+sta erx1 !save itable pointer of predefined symbol
+lda d34 ! symbol already defined
+bru error
+er35: lda d35 !illegal occurence of begin
+bru error
+er36: lda d36 !bound pair error
+bru error
+er37: lda d37 !no colon in bound pair
+bru error
+er38: lda d38 !up less than lb
+bru error
+er39: lda d39 !illegal occurence of declaration
+bru error
+er40: lda d40 !illegal assignment to formal parameter
+bru error
+er41: lda d41 !not in
+bru error
+er43: lda d43 !spurious quote
+bru error
+er44: lda d44 !program incomplete
+bru error
+er45: lda d45 !erroro in for statement
+bru error
+er52: lda d52 !illegal call by value
+bru error
+er55: lda d55 !illegal entry to for statement
+bru error
+er56: lda d56 !illegal procedure declaration
+bru error
+
+error: sta temp !error flag store routine
+lda erflag
+ejt !Page: 140
+bze !check for first error
+bru ferror !is first, set some flags
+lda temp !not first, brother is this guy poor
+spb erwrit,2 !write error code
+cab d44 !check for program incomplete
+bru *+2
+bru wrapup !is,  better leave
+cab three !check for symbol table overflow, better leave
+bru *+6
+bru *+2
+bru *+4
+lda lineno
+spb erwrit,2 !write line no anyway
+bru wrapp1 !then leave
+lda lineno
+spb erwrit,2 !write line number
+bru wrapp1
+
+ferror: lmo !first error. stop compilation, etc
+sta erflag !and set erflag, eraval
+lda erlo
+sta eraval
+lda varlo
+sub d14
+sta pavail
+bru error+4
+rem !round converts a floating poing number into
+rem !into a floating pont integer
+rem !called by assignment statments, subscripts
+round: fad .5
+set uflpoint
+fad bigzer
+cqx
+nox
+set nflpoint
+bru 1,2
+
+rem !unflot converts a positive integer in fp form
+rem !into an integer in the a register
+rem !called by kab
+nox
+unflot: fad .5
+set uflpoint
+fad bigzer
+fst junk
+lda junk
+cab bigzer
+bru er36
+bru *+2
+bru er36
+lda junk+1
+set nflpoint
+bru 1,2
+nam !console debugging aid
+ejt !Page: 141
+loc 33750
+stx prog-1,1
+ldz
+rcs
+bmi
+bru *+18
+sta prog
+ldx prog,1
+lda 0,1
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+bru *-20
+ldx prog-1,1
+bru *
+
+tcd disk1 !transfer card to read program onto disk
+nam !linkage for overlay number 1
+ejt !Page: 142
+rem !routine to position overlay for reading onto
+rem !disk.
+
+loc 5000
+disk2: ldz
+rcs
+bod
+bru move
+ton
+ldx zero,1
+typa: ldx zero,0
+lda mssg,1
+typ: bnn
+bru *-1
+san 6
+typ
+inx 1,0
+bxl 3,0
+bru typ
+inx 1,1
+bxl 6,1
+bru typa
+bnn
+bru *-1
+bru disk2
+move: wai
+bru *+3
+bru *
+kon
+dld diskc
+mov over
+lda diskc+1
+neg
+bru 1,2
+diskc: oct 20000
+oct 3775400
+mssg: oct 666237
+alf cti
+alf 1 h
+alf d 9
+alf nwo
+alf   .
+ejt !Page: 143
+
+rem !overlay linkage with executive
+
+loc 1400
+over: bss 4
+alf alg
+oct 1 !number of the overlay
+oct 0 !next three words are move constants
+dec -1
+oct 0
+rem !main system
+
+loc 1570
+five: dec 5
+six: dec 6
+seven: dec 7
+d22: dec 22
+d24: dec 24
+o33: oct 33
+o40: oct 40
+o53: oct 53
+exp3: oct 0014000
+oblo: oct 4100
+*mov*: mov 0
+nam !compile-time constants
+ejt !Page: 144
+rem !  the modifier of the compiler should bear in
+rem !mind that certain routines can be called at
+rem !either run-time or compile-time.  among thes
+rem !are endjob, the integer part of print, round,
+rem !and intchk.
+
+o60: oct 60
+.5: fdc .5
+bigzer: fdc 0b30
+syntax: equ 1129
+fzero: fdc 0
+fone: fdc 1b1
+fmone: fdc -1
+zero: equ fzero
+two: oct 2
+eight: dec 8
+ten: dec 10
+one: dec 1
+dm9: dec -9
+three: dec 3
+d30: dec 30
+d60: dec 60
+dm2: dec -2
+o3777: oct 3777
+o17777: oct 17777
+o37777: oct 37777
+abit: oct 400000
+oct 0
+gr2: equ abit
+cbit: oct 20000
+lbit: oct 1000000
+rbit: oct 0040000
+amask: oct 3760000 !leave address only
+acmask: oct 177777 !leaves high-order tags only
+armask: oct 3757777
+chmask: oct 3777700 !leave 6-bit character only
+epmask: oct 3774000 !remove exponent
+smask: oct 1777777 !leave sign bit
+sign: oct -0
+swtype: oct 1400000 !switch type
+*nop*: nop
+*stx2*: stx 0,2
+o10000: oct 10000
+modc1: bru const1-1,1
+modc2: bru const2-1,1
+modc3: bru const3-1,1
+d77: dec 77
+d14: dec 14
+fills: oct 777777
+ejt !Page: 145
+dblone: ddc 1
+d3088: dec 30b8
+o2000: oct 2000
+cmask: oct 3777770
+o7777: oct 7777
+rem !constants for constant conversion
+ctable: fdc 1b1 !!0006000 0000000
+fdc 10b4 !!0022400 0000000
+fdc 1e2b7 !!0037100 0000000
+fdc 1e3b10 !!0053720 0000000
+fdc 1e4b14 !!0072342 0000000
+fdc 1e5b17 !!0107032 1000000
+fdc 1e6b20 !!0123641 0200000
+fdc 1e7b24 !!0142304 1320000
+fdc 1e8b27 !!0156765 1604000
+fdc 1e16b54 !!0332160 1371157
+fdc 1e32b107 !!0656356 0265552
+fdc 1e64b213 !!1527023 1403722
+oct 1777777
+oct 1777777
+ejt !Page: 146
+rem !provides internal identifiers for algol
+rem !symbols, special codes for control characters
+rem !and, for letters, the initial index for the
+rem !allist loopup, for algol symbol. the tag
+rem !bits give the following information
+
+rem !character  group subgroup  prev    u  number
+clist: oct 10000 !      0
+oct 10001   !      1
+oct 10002   !      2
+oct 10003   !      3
+oct 10004   !      4
+oct 10005   !      5
+oct 10006   !      6
+oct 10007   !      7
+oct 10010   !      8
+oct 10011   !      9
+oct 3405064 !      apostrophe   6              2      1     52
+oct 3600016 !      colon        7       0      look for =
+paren: oct 3405052 !open paren   6              2      1     42
+oct 3004075 !      semicolon    4              2            61
+oct 3600161 !      =            7       1      look for /
+oct 2242004 !      back slash   1       2      1             4
+plusid: oct 2262005!+           1       3      1             5
+oct 0121    !      a
+oct 0422    !      b
+oct 1123    !      c
+d: oct 1424    !      d
+e: oct 1725    !      e
+oct 2426    !      f
+oct 2727    !      g
+oct 0030    !      h
+oct 3131     !      i
+bellid: oct 2000001 !     bell [non-inputtable]
+decid: oct 3400070  !      .          6          0          56
+oct 3405065 !     quote     6          2     1     53
+oct 3405064 !     question mark (strings only)
+oct 3600216 !     less than    7      2     look for =
+oct 2000003 !     cr
+minid: oct 2262006 !     -          1     3     1          6
+oct 0041    !      j
+oct 0042    !      k
+l: oct 3743 !      l
+oct 0044    !      m
+n: oct 4145 !      n
+o: oct 4246 !      o
+oct 4447    !      p
+oct 0050    !      q
+oct 4751    !      r
+oct 0       !      tab
+expid: oct 3400067 !     ?          6          0          55
+oct 2242002 !      ?          1     2     1          2
+eomch: oct 2000002 !     eom
+oct 3600316 !      greater    7     3     look for =
+ejt !Page: 147
+oct 2222001 !     arrow      1     1     1          1
+oct 0       !     space
+oct 3600416 !     /          7     4     look for =
+s: oct 5162 !     s
+t: oct 5763 !     t
+oct 6364    !     u
+oct 6565    !     v
+oct 6766    !     w
+oct 0067    !     x
+oct 7170    !     y     *****
+oct 0071    !     z
+oct 2000000 !     line feed
+oct 3003076 !     ,            4          1     1     62
+oct 3002074 !     close paren  4          1           60
+oct 3403053 !     [            6          1     1     43
+oct 3002073 !     ]            4          1           59
+spch: oct 2000004 !     fill
+exoend: oct 122 !     compile-time end of output buffer
+pflag: dec 0    !     compile-time flag
+swldx: ldx swexit,2
+sidspb: spb sidsub,1
+oct 0       !     result is of integer type
+brufor: bru forerr
+aauchs: fmp fmone
+crudlo: lda crud
+erlo: dec prog-1
+nover: bru start1
+yover: bru start
+etablo: lda etable
+locid2: lda ident2
+modidn: bru ident-1,1
+modun: bru undef-1,1
+retdn: bru iddone,1
+retrd: bru read-1,1
+retrpt: bru repeat-1,1
+retinp: bru input-1,1
+retncp: bru ncp5-1,1
+retrel: bru krel1-1,1
+retstp: bru step1-1,1
+retsub: bru subsc3-1,1
+bprspb: spb bprsub,1
+dnfspb: spb dunflt,1
+powspb: spb powsub,1
+oct 40000 !     result is of type real
+prospb: spb plink,1
+rdtspb: spb rdtsub,1
+prtspb: spb prtsub,1
+rndspb: spb rndsub,2
+rdaspb: spb rdasub,1
+rd2spb: spb rd2sub,1
+rsfspb: spb restfl,1
+rddspb: spb setfil,1
+wrsspb: equ rddspb
+rdbspb: spb rdbsub,1
+ejt !Page: 148
+wt2spb: spb wrtsub,1
+strerr: bru aser
+tstspb: spb tstsub,1
+shospb: spb shosub,1
+tabspb: spb tab,1
+crtspb: spb crt,1
+strspb: spb strsub,1
+edspb: spb 3,3
+rstspb: spb restor,1 !     restore
+lnkspb: spb link,2
+ldadbl: lda dblock
+bruend: bru getout
+forx1: stx junk,1
+forx2: lda junk
+four: oct 4
+d19: dec 19
+d20: dec 20
+d41: dec 41
+d37: dec 37
+d4: dec 4
+d5: equ five
+d6: equ six
+d7: equ seven
+d8: equ eight
+d9: dec 9
+d10: equ ten
+d11: dec 11
+d12: dec 12
+d13: dec 13
+d15: dec 15
+d16: dec 16
+d17: dec 17
+d18: dec 18
+d21: dec 21
+d23: dec 23
+d25: dec 25
+d27: equ o33
+d29: dec 29
+d32: equ o40
+d33: dec 33
+d34: dec 34
+d35: dec 35
+d36: dec 36
+d38: dec 38
+d39: dec 39
+d40: dec 40
+d43: equ o53
+d44: dec 44
+d45: dec 45
+d52: dec 52
+d55: dec 55
+d56: dec 56
+o32: oct 32
+o34: oct 34
+ejt !Page: 149
+o37: oct 37
+o72: oct 72
+o73: oct 73
+o74: equ d60
+o77: oct 77
+o100: oct 100
+o124: oct 124
+o200: oct 200
+o400: oct 400
+o700: oct 700
+o711: oct 707
+o6002: oct 6002
+o6060: oct 6060
+o7700: oct 7700
+o13677: oct 13677
+d26: equ o32
+d28: equ o34
+d31: equ o37
+gr1: oct 0200000
+gr1s3: oct 0260000
+gr5: oct 1200000
+gr7: oct 1600000
+magic: oct 1234567
+notype: oct 1760000
+sfudge: oct 300000
+spbsp: oct 600060
+conlf: oct 6251
+conlf1: oct 201
+conlo: oct 6050
+objlo: dec prog
+varlo: oct 17774
+bbit: oct 100000
+gr4: equ lbit
+ssbits: oct 600000
+ctag: oct 100
+dctag: oct 300
+xtag: equ cbit !     upper memory bit
+bmask: oct 3677777 !     leave boolean bit only
+comask: oct 3777477 !     conditional tags
+dmask: equ armask !     defined tag
+eqmask: oct 3777701 !     equivalence class of identifier
+etmask: oct 3776000 !     etable relative address
+iamask: oct 3700000 !     leaves 15-bit address
+pmask: oct 3771777 !     leave previous tag
+rmask: oct 3737777 !     leave real bit
+tmask: oct 3637777 !     r-i-b mask
+umask: oct 3776777 !     leave unary tag
+wmask: oct 3000000
+ymask: oct 3400000
+*add*: add 0
+dtype: oct 1100000 !     data type
+detype: equ gr7 !     designational expression type
+sttype: oct 1600000
+rproc: oct 3240000 !     real procedure type
+ejt !Page: 150
+filtyp: oct 1220000 !     disk file type
+swtyp2: oct 1420000 !     defined switch
+*ado*: ado
+*bbpl*: bar bpl,7
+*bbmi*: bar bmi,7
+*bbnz*: bar bnz,7
+*bbze*: bar bze,7
+*bev*: bev
+*ext*: equ sign
+*bru*: bru 0
+sexit: bru 1,1
+*bze*: bze
+*cax*: cax
+*cpl*: cpl
+*cqx*: cqx
+*dld1*: dld 0,1
+*dst*: dst 0
+*fad*: z31 0
+*fdv*: oct 3600000
+ftype: equ *fdv*
+*fld*: equ wmask
+*fld1*: z30 0,1
+*fmp*: oct 3500000
+*fst*: oct 3300000
+*fsu*: z32 0
+*ldx1*: ldx 0,1
+gr3s1: equ *ldx1*
+prqa: equ 6563
+*lda*: equ zero
+*ldx2*: ldx 0,2
+*ldz*: ldz
+*maqa*: maq ,a
+*lmo*: lmo
+*spb1*: spb 0,1
+*spb2*: spb 0,2
+*sta*: sta 0
+*sto*: sto 0
+*stx1*: stx 0,1
+swstx: stx swexit,2
+*xaqa*: xaq ,a
+thret: bru 1,2 !     thunk return
+arrid: oct 1000057 !     array
+asid: oct 1003151
+begid: oct 1000045 !     begin
+boolid: oct 1000056 !     boolean
+comid: oct 1003076 !     comma
+dbid: oct 1002034 !     declaration left bracket
+fctid: oct 1000041 !     standard function left-parenthesis
+gotoid: oct 1000044 !     goto
+inpid: oct 1000040 !     readata left-paren
+outpid: oct 1000037 !     print left-paren
+parid: oct 1005052 !     left parenthesis
+procid: oct 1000036 !     parameter list left-parenthesis
+prcid: oct 1000046
+ejt !Page: 151
+rbid: oct 1002073 !     right bracket
+realid: oct 1000054 !     real
+specid: oct 20002 !     whami in specifiecation part
+declid: oct 20001 !     whami in declaration
+rpid: oct 1002074 !     right parenthesis
+scid: oct 1004075 !     semicolon
+swbid: oct 1000035 !     switch left bracket
+umid: oct 0262010 !     unary minus
+upid: oct 0262007
+absid: lda abssub
+assid: oct 1003051 !     colon-equals
+ago: alf go
+
+rem !itable-etable initialization constants
+iticon: lda itable
+dec -84
+eticon: oct 5707
+dec -60
+itinit: oct 220771 !0      exp   + overflow to writefile
+z36 expsub !1
+oct 0 !2
+oct 0 !3
+oct 224756 !4     print   + overflow to endfile
+z34 0 !5
+oct 754 !6     random
+z32 rdmsub,2 !7
+oct 0 !10
+oct 0 !11
+oct 0 !12
+oct 0 !13
+oct 0 !14
+oct 0 !15
+oct 0 !16
+oct 0 !17
+oct 752 !20
+z32 elaps,2 !21     time
+oct 0 !22
+oct 0 !23
+oct 765 !24     sqrt
+z36 sqrsub !25
+oct 210775 !26     sign  +  overflow to clock
+z36 sgnsub !27
+oct 763 !30     entier
+z36 entsub !31
+oct 0 !32
+oct 0 !33
+oct 234773 !34     cos   +   overflow to cot
+z36 cossub !35
+oct 0200774 !36     sin   = overflow to arctan
+z36 sinsub !37
+oct 0204772 !50     ln   +overflow to readata
+z36 lnsub !41
+oct 0 !42
+oct 0 !43
+ejt !Page: 152
+oct 0 !44
+oct 0 !45
+oct 730 !46     scratch
+z12 0,1 !47     scratch
+oct 746 !50     teletype
+z11 8191,1 !51
+oct 0 !52
+oct 0 !53
+oct 0 !54
+oct 0 !55
+oct 715 !56     underflow
+z33 oftst !57
+oct 0 !60
+oct 0 !61
+oct 244777 !62     abs+overflow to divied check
+z36 abssub !63
+oct 0 !64
+oct 0 !65
+oct 743 !66     restore
+z35 1,1 !67
+oct 0 !70
+oct 0 !71
+oct 0 !72
+oct 0 !73
+oct 707 !74     chain
+z35 3,1 !75
+oct 0 !76
+oct 0 !77
+oct 767 !100     arctan
+z36 atnsub !101
+oct 214760 !102     readata  +  overflow to readfile
+z35 0,1 !103
+oct 741 !104     clock
+z32 clock,1 !105
+oct 736 !106 !     readfile
+z35 0,1 !107
+oct 733 !110     writefile
+z35 2,1 !111
+oct 230725 !112     endfile+overflow to tan
+z01 8188,1 !113
+oct 240724 !114     tan+overflow to overflow
+z36 tan !115
+oct 723 !116     cot
+z36 cot !117
+oct 720 !120     overflow
+z33 ovtst !121
+oct 711 !122     divide check
+z33 dvtst !123
+
+etinit: alf cha
+oct 2314560
+alf div !     divide check
+alf ide
+ejt !Page: 153
+alf che
+oct 2234260
+alf und !     underflow
+alf erf
+oct 2434666
+alf ove !     overflow
+alf rfl
+oct 2466660
+oct 2234663 !     cot
+oct 2632145 !     tan
+alf end !     endfile
+alf fil
+oct 2256060
+alf scr !     scratch
+alf atc
+oct 2306060
+alf wri !     writefile
+alf tef
+oct 2314325
+alf rea !     readfile
+alf dfi
+oct 2432560
+alf clo !     clock
+oct 2234260
+alf res
+alf tor
+oct 2256060
+alf tel
+alf ety
+oct 2472560
+oct 2636370 !     tty
+alf tim !     time
+oct 2256060
+alf ran !     random
+oct 2244644
+alf pri !     print
+oct 2456360
+alf rea !     readata
+alf dat
+oct 2216060
+alf ent !     entier
+oct 2312551
+alf sqr !     sqrt
+oct 2636060
+alf arc !     arctan
+oct 2632145
+oct 2256747 !     exp
+oct 2434560 !     ln
+oct 2234662 !     cos
+oct 2623145 !     sin
+alf sig     !     sign
+oct 2456060
+oct 2212262 !     abs
+xmove: oct 4020
+ejt !Page: 154
+dec -20
+
+rem !following constants must be in given order
+swhead: spb unfsub,2
+sta xr02
+*bnz*: bnz
+*bmi*: bmi
+bru swerr
+sub 0
+bpl
+bru swerr
+bru 0,2
+
+
+rem !id1ch gives the identifiers for one character
+rem !algol symbols. id2ch for two character
+rem !symbols.
+rem !symbol     group subgroup  prev     u  number
+id1ch: oct 1403066 !colon        6               1      1      54
+oct 0403013        !=            2               1      1      11
+oct 0403011        !less than    2               1      1       9
+oct 0403016        !greater      2               1      1      14
+oct 0242003        !/            1       2       1              3
+id2ch: oct 1403051 !assign       6               1      1      41
+oct 0403014        !=/           2               1      1      12
+oct 0403012        !lte          2               1      1      10
+oct 0403015        !gte          2               1      1      13
+oct 0403014        !/=           2               1      1      12
+
+
+rem !alid is the lsit of identifiers for
+rem !algol words found in the allist
+rem !symbol    group  subgroup prev   u    number
+alid: oct 0643020 !and          3       2       1      1      16
+oct 1400057       !array        6               0             47
+oct 0
+begin: oct 1400045!begin        6               0             37
+oct 0
+oct 1400056       !boolean      6               0             46
+oct 0
+oct 0
+oct 1400063       !comment      6               0             51
+oct 0
+oct 0
+dataid: oct 1400061!data         6               0             49
+oct 0
+doid: oct 1002031 !do           4               1             25
+elseid: oct 1005025 !else         4               2      1      21
+oct 0
+endid: oct 1004077!end          4               2             63
+oct 0723023       !equiv        3       5       1      1      19
+oct 0
+oct 1400072       !false        6               0             58
+oct 0
+ejt !Page: 155
+forid: oct 1400050!for          6               0             40
+goid: oct 1400044 !goto         6               0             36
+oct 0
+oct 1401047       !if           6               0      1      39
+oct 0703022       !imply        3       4       1      1      18
+oct 0
+oct 1400055       !integer      6               0             45
+oct 0
+oct 0
+oct 1200042      !label       5             0           34
+oct 0
+oct 0621017      !not         3      1      0      1    15
+oct 0663021      !or          3      3      1           17
+ownid: oct 1400062!own         6             0           50
+oct 1400046      !procedure   6             0           38
+oct 0
+oct 0
+oct 1400054      !real        6             0           44
+oct 0
+stepid: oct 1003026!step        4             1      1    22
+oct 0
+oct 1200043      !string      5             0           35
+oct 0
+swid: oct 1400060!switch      6             0           48
+oct 0
+thenid: oct 1003024!then        4              1     1    20
+oct 0
+oct 1400071      !true        6             0           57
+oct 0
+untid: oct 1003027!until       4             1     1     23
+oct 0
+oct 1200032      !value       5             0           26
+oct 0
+whilid: oct 1003030!while       4             1     1     24
+oct 0
+oct 1200033      !yoicks      5             0           27
+
+rem !allist contains alphabetic    algol
+rem !symbols.  the first word of each symbol
+rem !is flagged by a - sign.
+allist: oct 2214524 !and
+oct 2215151 !array
+alf ay
+oct 2222527 !begin
+alf in
+oct 2224646 !boolean
+alf lea
+alf n
+oct 2234644 !comment
+alf men
+alf t
+oct 2242163 !data
+alf a
+ejt !Page: 156
+oct 2244660 !do
+oct 2254362 !else
+alf e
+oct 2254524 !end
+oct 2255064 !equiv
+alf iv
+oct 2262143 !false
+alf se
+oct 2264651 !for
+oct 2274663 !goto
+alf o
+oct 2312660 !if
+oct 2314447 !imply
+alf ly
+oct 2314563 !integer
+alf ege
+alf r
+oct 2432122 !label
+alf el
+oct 2454663 !not
+oct 2465160 !or
+oct 2466645 !own
+oct 2475146 !procedure
+alf ced
+alf ure
+oct 2512521 !real
+alf l
+oct 2626325 !step
+alf p
+oct 2626351 !string
+alf ing
+oct 2626631 !switch
+alf tch
+oct 2633025 !then
+alf n
+oct 2635164 !true
+alf e
+oct 2644563 !until
+alf il
+oct 2652143 !value
+alf ue
+oct 2663031 !while
+alf le
+oct 2703147 !yipess
+alf ess
+oct 2777777
+nam !working storage allocation
+ejt !Page: 157
+rem !         storage allocation in 6-k area
+rem !
+rem !compile-time      addr     run-time
+rem !                --------
+rem !               ** 4000 **
+rem !    save area **        ** save area
+rem !               ** 4077 **
+rem !                --------
+rem !               ** 4100 **
+rem !  output area **        *
+rem !               ** 4277  *
+rem !                ------  *
+rem !               ** 4300  *
+rem ! working area **        *
+rem !               ** 4437  *
+rem !                ------  *
+rem !               ** 4440  *
+rem !           bs **        ** output area
+rem !               ** 4677  *
+rem !               -------- *
+rem !               ** 4700  *
+rem !        nc-sc **        *
+rem !               ** 4777  *
+rem !               -------- *
+rem !               ** 5000  *
+rem !               *        *
+rem !               *  5677 **
+rem !etable-itable **  -------
+rem !               *  5700 **
+rem !               *        ** runtime storage
+rem !               ** 5777 **
+rem !                --------
+rem !               ** 6000 **
+rem !         junk **        ** junk
+rem !               ** 6001 **
+rem !                --------
+rem !               ** 6002 **
+rem !       ident1 **        *
+rem !               ** 6013  *
+rem !                ------  *
+rem !               ** 6014  *
+rem !       ident2 **        ** program temporary
+rem !               ** 6026  *
+rem !                ------  *
+rem !                  6030  *
+rem !                        *
+rem !                  6047 **
+rem !                --------
+rem !               ** 6050 **
+rem !constant pool **        ** constant pool
+rem !               ** 6251 **
+rem !               --------
+rem !               ** 6252 **
+rem !      common **         ** comon
+ejt !Page: 158
+rem !               ** 6276 **
+rem !                --------
+rem !       program    6277    program
+rem !         Ò                    Ò
+rem !         Ò                    Ò
+rem !         Ò                    Ò
+ejt !Page: 159
+loc 4300
+asize: bss 2 !foating array size
+lb: bss 2 !bound pair -- lower bound
+opcall: bss 2 !operand infor [arrays, data]
+go3: bss 2 !back up info if -to- not after -go-
+astart: bss 1 !ncc l0 for array identifier list
+atype: bss 1 !type [procedures, formal parameters ]
+ax: bss 1 !subscript indicator for loadgn
+binexp: bss 1
+bsc: bss 1 !block symbol cellar counter
+cavail: bss 1 !constant table ponter
+cflag: bss 1 !colon-flag for bound pairs in array decl
+cmode: bss 1 !switch for constant mode
+cread: bss 1 !constant has been read flag
+declo: bss 1 !location of *bru* around declaration
+depth: bss 1 !blocking depth counter
+dinam: bss 1 !constants-only flag
+dstat: bss 1 !declaration legal flag
+eavail: bss 1 !etable pointer
+expflg: bss 1
+finc: bss 1 !identifier for increment
+flab1: bss 1 !l0 of for list element computation
+flab2: bss 1 !l0 of test for done
+flab3: bss 1 !exit from loop
+flab4: bss 1 !index in nc for running variable
+foray: bss 1 !funning variable subscripted flag
+forno: bss 1 !first element in for list flag
+fpflag: bss 1 !for formal parameter assignments
+go1: bss 1 !backup xr save
+go2: bss 1 !back xr save
+iavail: bss 1 !itable pointer
+itemp: bss 1 !very temporary register save
+lineno: bss 1 !compile-time line number
+load: bss 1 !*lda* or *fld*  --  loadgn
+noel: bss 1 !number of elements -- various source lists
+noob: bss 1 !number of undefined objects
+opa: bss 1 !operand address
+opax: bss 1 !operand subscript address
+own: bss 1 !non-zero own declarations
+pblok: bss 1 !previous l0 in bs
+plf: bss 1 !last location availiable to object
+prev2: bss 1 !previous prev.  [route puts symb in prev]
+prflag: bss 1 !tab suppression flag
+punt: bss 1 !simple increment flag
+rexit: bss 1
+rtemp: bss 1
+sloc: bss 1
+sslo: bss 1
+switch: bss 1 !commutative operation flag
+temp: bss 1 !various temporary uses
+term: bss 1 !comment loop symbol-only flag
+tslf: bss 1 !end of current termporary storage are
+tslo: bss 1 !beginning of current temporary storage area
+test21: bss 1 !xr save for notalg
+ejt !Page: 160
+tsflag: bss 1 !temporary storage availiability flag
+tst: bss 1 !temporary store instruction
+whami: bss 1 !where-am-i flag
+writex: bss 1 !used by -write-
+wtemp: bss 1 !used by -write-
+
+erflag: bss 1
+eraval: bss 1
+dskflg: bss 1 !disk operation flag
+dkflg2: bss 1
+trpflg: bss 1 !no trap flag
+lnkflg: bss 1 !chain flag to string
+xr00: equ 0 !very termporary
+xr01: equ 1 !number cellar counter [noc]
+xr02: equ 2 !miscellaneous exits
+xr03: equ 3 !miscellaneous exits
+
+xr10: equ 4 !return after tieup
+xr11: equ 5 !symbol cellar counter [soc]
+xr12: equ 6 !miscellaneous exits
+xr13: equ 7 !exit from loadgn and a few others
+
+xr20: equ 8 !working storage for edit
+xr21: equ 9 !word index in source
+xr22: equ 10 !character index in word
+xr23: equ 11 !mode of input [i.e. exit from char]
+
+xr30: equ 12 !ident2 character count
+xr31: equ 13 !ident1 word count
+xr32: equ 14 !ident2 word count
+xr33: equ 15 !ident1 character count
+
+xr40: equ 16
+xr41: equ 17 !index in itable of last-read identifier
+xr42: equ 18
+xr43: equ 19
+
+txr2: eqo 212
+
+return: equ xr10 !return after compiling a bridge
+nc: eqo 4700 !number cellar
+sc: eqo 4700 !symbol cellar
+bs: eqo 4440 !block symbol cellar
+bslf: eqo 236
+ident1: eqo 6001 !identifier accumulator
+ident2: eqo 6013 !identifier accumulator
+etable: eqo 5000 !external identifier table
+itable: eqo 5000 !internal identifier table
+cmpflg: equ 6438
+junk: eqo 6000
+cclo: eqo 6050
+outbuf: eqo 4100 !output buffer
+ejt !Page: 161
+loc 5700
+trpsv: bss 1
+sidxr: equ xr00
+crud: eqo 17776
+ichk1: equ crud
+port: equ crud
+unad: equ 6120
+randm2: bss 2
+ichkxr: bss 1
+powxr: bss 1
+rnd: bss 1
+dblock: bss 1
+swexit: bss 1
+aptype: bss 1 !actual paramete type for linkage check
+farg: bss 0 !insures atemp starts in even location
+atemp: bss 15
+rem !for sqrt
+/2108: equ atemp+2
+/2110: equ atemp+4
+rem !for sin-cos
+/2202: equ atemp+2
+/2230: equ atemp+4
+/2210: equ atemp+8
+/2211: equ atemp+9
+rem !for arctan
+/2310: equ atemp+2
+/2316: equ atemp+4
+/2306: equ atemp+6
+/2307: equ atemp+7
+/2303: equ atemp+8
+/2308: equ atemp+9
+rem !for exponential
+/6134: equ atemp+2
+/6109: equ atemp+4
+/6128: equ atemp+6
+/6119: equ atemp+10
+rem !for logartithm
+/5112: equ atemp+2
+/5114: equ atemp+4
+/5107: equ atemp+6
+/5152: equ atemp+8
+/5143: equ atemp+10
+rem !for output routines
+bdcarg: equ atemp+10
+oneout: equ 3288
+rem !storage for service routines common to both
+rem !run- and compile-time
+loc 6252
+erx1: bss 1 !compile time error xr save
+erx2: bss 1 !compile time error xr save
+erx3: bss 1 !compile time error xr save
+prx1: bss 1
+prx3: bss 1
+stnd: bss 1
+ejt !Page: 162
+prxt: bss 1
+crump: bss 1
+pavail: bss 1 !object program pointer
+vavail: bss 1 !variable storage ponter
+pout: bss 15
+const: bss 2 !holds converted constant
+constx: bss 2 !provisional value of constant mantissa
+ch2: bss 1 !character accumulator
+ch3: bss 1 !character accumulator
+bigc: bss 1 !high order bits of const+10
+dctr: bss 1 !decimal point flag
+dinc: bss 1
+exp: bss 1 !absolute exponent of constant
+sgnexp: bss 1 !sign of exponent of constant
+symb: bss 1 !holds last symbol read
+prev: bss 1 !previous symbol
+type: bss 1 !type in expressions
+temp*: bss 1 !xr save
+save*: bss 1 !xr save
+prog: bss 0
+ejt !Page: 163
+loc 1400
+ovtst: bss 1
+oftst: bss 1
+dvtst: bss 1
+sidsub: bss 2
+forerr: bss 2
+bprsub: bss 1
+dunflt: bss 1
+powsub: bss 1
+plink: bss 1
+rdtsub: bss 2
+prtsub: bss 2
+rndsub: bss 2
+rdasub: bss 1
+rd2sub: bss 1
+aser: bss 2
+tstsub: bss 1
+shosub: bss 2
+tab: bss 2
+crt: bss 2
+strsub: bss 2
+restor: bss 1
+cossub: bss 1
+getout: bss 2
+abssub: bss 1
+expsub: bss 1
+elaps: bss 1
+entsub: bss  2
+atnsub: bss 1
+rdmsub: bss 1
+lnsub: bss 1
+sqrsub: bss 1
+sgnsub: bss 1
+sinsub: bss 1
+unfsub: bss 2
+swerr: bss 2
+clock: bss 1
+restfl: bss 1
+setfil: bss 1
+rdbsub: bss 1
+wrtsub: bss 1
+tan: bss 1
+cot: bss 1
+link: bss 2
+
+end disk2
+

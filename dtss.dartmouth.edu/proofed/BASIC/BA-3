@@ -1,0 +1,1735 @@
+lab1: alf dim
+alf ens
+alf ion
+alf  to
+alf o l
+alf arg
+alf e  
+lab2: alf ill
+alf ega
+alf l c
+alf ons
+alf tan
+alf t  
+alf    
+lab3: alf ill
+alf ega
+alf l f
+alf orm
+alf ula
+alf    
+alf    
+lab4: alf ill
+alf ega
+alf l i
+alf nst
+alf ruc
+alf tio
+alf n  
+lab5: alf ill
+alf ega
+alf l  
+alf num
+alf ber
+alf    
+alf     
+lab6: alf ill
+alf ega
+alf l r
+alf ela
+alf tio
+alf n
+alf     
+lab7: alf ill
+alf ega
+alf l
+alf var
+alf iab
+alf le
+alf    
+lab8: alf inc
+alf orr
+alf ect
+alf   f
+ejt !Page: 000092
+alf orm
+alf at
+alf    
+alf    
+lab10: alf end
+alf  is
+alf  no
+alf t l
+alf ast
+alf    
+oct 0606037
+lab11: alf no
+alf end
+alf  in
+alf str
+alf uct
+alf ion
+oct 0606037
+lab12: alf no
+alf dat
+alf a
+alf    
+alf    
+alf    
+oct 0606037
+lab13: alf und
+alf efi
+alf ned
+alf  fu
+alf nct
+alf ion
+oct 0606037
+lab14: alf und
+alf efi
+alf ned
+alf  nu
+alf mbe
+alf r
+oct 0606037
+lab15: alf pro
+alf gra
+alf m t
+alf oo 
+alf lon
+alf g
+oct 0606037
+lab16: alf too
+alf  mu
+alf ch 
+alf dat
+alf a
+alf    
+oct 0606037
+lab19: alf too
+ejt !Page: 000093
+alf   m
+alf any
+alf   l
+alf oop
+alf s  
+alf    
+lab20: alf not
+alf  ma
+alf tch
+alf ed 
+alf wit
+alf h f
+alf or
+lab21: alf for
+alf  wi
+alf tho
+alf ut 
+alf nex
+alf t
+oct 0606037
+lab23: alf cut
+alf  pro
+alf ogr
+alf am
+alf or
+alf dim
+oct 0623337
+nam !run-time error messages
+ejt !Page: 000094
+rem !runtime error messages
+er0: equ *
+rem !out of data
+alf out
+alf  of
+alf  da
+oct 0632160
+er1: equ *
+rem !square root of negative number
+alf squ
+alf are
+alf  ro
+alf ot 
+alf of 
+alf neg
+alf ati
+alf ve 
+alf num
+alf ber
+oct 0607777
+er2: equ *
+rem !log of negative number
+alf log
+alf  of
+alf  ne
+alf gat
+alf ive
+alf  nu
+alf mbe
+oct 0516077
+er3: equ *
+rem !log of zero
+alf log
+alf  of
+alf  ze
+alf ro 
+er4: equ *
+rem !program over time limit, test aborted.
+alf pro
+alf gra
+alf m o
+alf ver
+alf  ti
+alf me 
+alf lim
+alf it.
+alf  te
+alf st 
+alf abo
+alf rte
+oct 0246077
+er5: equ *
+rem !return before gosub
+ejt !Page: 000095
+alf ret
+alf urn
+alf  be
+alf for
+alf e g
+alf osu
+oct 0226077
+er6: equ *
+rem !subscript error
+alf sub
+alf scr
+alf ipt
+alf  er
+alf ror
+oct 0607777
+er7: equ *
+rem !division by zero
+alf div
+alf isi
+alf on 
+alf by 
+alf zer
+oct 0466077
+er8: equ *
+rem !overflow
+alf ove
+alf rfl
+alf ow 
+er9: equ *
+rem !underflow
+alf und
+alf erf
+alf low
+oct 0607777
+er10: equ *
+rem !zero to a negative power
+alf zer
+alf o t
+alf o a
+alf  ne
+alf gat
+alf ive
+alf  po
+alf wer
+oct 0607777
+er11: equ *
+rem !absolute value raised to power
+alf abs
+alf olu
+alf te 
+alf val
+alf ue 
+alf rai
+alf sed
+ejt !Page: 000096
+alf  to
+alf  po
+alf wer
+oct 0607777
+e12: equ *
+rem !gosubs nested too deeply
+alf gos
+alf ubs
+alf  ne
+alf ste
+alf d t
+alf oo 
+alf dee
+alf ply
+oct 0607777
+e13: equ *
+rem !input data data not in correct format, retype it.
+alf inp
+alf ut 
+alf dat
+alf a n
+alf ot 
+alf in 
+alf cor
+alf rec
+alf t f
+alf orm
+alf at.
+alf  re
+alf typ
+alf e i
+alf t. 
+e14: equ *
+nam !run-time, lower memory,  output routines
+ejt !Page: 000097
+org work
+exc: oct 0006000
+oct 0000000
+oct 0000000
+oct 0000000
+dec 0
+dec 0
+output: spb ycrtb,1
+spb ycrtb,1
+set pbk
+lda out52
+sta exo,3
+lda out52+1
+sta exo+1,3
+inx 2,3
+lac
+add exn3
+sub time
+maq
+dvd exn6
+maq
+dvd sixty
+bze
+bru out50
+xaq
+sta temp
+lda zero
+dvd exn10
+bze
+lda bl
+add bl20
+sla 6
+sta temp+1
+xaq
+add temp+1
+sta exo,3
+lda out53
+sta exo+1,3
+lda out53+1
+sta exo+2,3
+inx 3,3
+lda temp
+xaq
+out50: lda zero
+dvd exn10
+bze
+lda bl
+add bl20
+sla 6
+sta temp
+xaq
+add temp
+sta exo,3
+ejt !Page: 000098
+lda out54
+sta exo+1,3
+lda out54+1
+sta exo+2,3
+lda crlf
+sta exo+3,3
+inx 4
+lda bleom
+sta exo,3
+ldz
+bru top !$$$$$$terminal exit$$$$$$
+ytab: stx unfl1,1 !tabbed output routine
+spb fxyind,3 !update yind
+set pbk
+ldx exon,3 !output pointer
+bze ytab2 !yodd is in a, if zero then skip
+lqa !hold onto yodd
+lda fzb !fill-zero-blank
+sta exo,3 !set word with one blank in output
+inx 1,3 !increment output pointer
+stx exon,3 !update exon
+laq !get back yodd
+cab n2
+bru *+3 !only one blank needed
+lda zbz !zero blank zero
+bru *+2
+lda fill2 !zero-fill-zero
+ory exo-1,3 !put in either blank or fill
+ytab2: lda yind !no. of words in line
+maq !set up divide
+dvd n5 !divide by no. of words to tab position
+sub n4 !subtract no. of tab positions
+bze ytab4 !special case
+bpl ycrt2 ! if all tab positions filled new line
+laq !fetch no. of words into present tab pos
+bze ytab6 !on the stop
+sub n5 !negative of no. of words needed to fill
+lqa !hold on to this number
+sub yind !compute new value of yind
+neg !make sum positive
+sta yind
+lda blanks !set up to fill out to next tab
+xaq
+ytab3: bze ytab6 !carriage is at the tab [so to speak]
+xaq !put the blanks in a
+sta exo,3 !otuput one word of blanks
+inx 1,3 !increment outbuf pointer
+xaq !get back no. of words needed to fill out
+ado !   to tab decrement
+ejt !Page: 000099
+bru ytab3
+ytab4: xaq
+bnz
+bru ycrt2
+ytab6: ldx unfl1,1
+stx exon,3
+set pst
+ldz !tabbing resets odd character counter
+sta yodd
+bru 1,1
+ycrtb: lda bl32
+set pbk
+ldx exon,3
+sta exc,3
+inx 1,3
+stx exon,3
+ycrt: stx unfl1,1
+set pbk
+ldx exon,3
+ycrt2: stx xtem,3
+lda xtem
+bze
+bru ycrt3
+sbo
+sta xtem
+ldx xtem,3
+lda exo,3
+ext ycrt5
+add ycrt4
+ycrt9: sta exo,3
+inx 1,3
+lda zero
+sta yind
+stx xtem,3
+lda xtem
+sub exoend
+bmi
+bru ytab6
+ldz !reset odd character counter
+sta yodd
+set pbk
+ldo
+bru top !intermediate output
+ycrt3: lda crt
+sta exo
+bru ycrt9+1
+ysht: spb fxyind,3 !update yind to include odd characters
+lda yind
+sub exn22
+bmi
+bru 1,1
+bru ycrt
+fxyind: lda yodd !get no. of fills  stored in outbuf
+bze !if none return
+ejt !Page: 000100
+bru 1,3
+maq !set up divide
+dvd n3 !determine whole number of words over
+rem !actual that yind has been set to
+sub yind
+neg !decrement yiund accordingly
+sta yind
+laq !remainder of division
+sta yodd !new value of yodd
+bru 1,3 !return
+ylab: stx ylabxr,0 !protect zero from the mov
+sta xtem !hand on to location of message
+sra 15 !pick out count of fills in message
+add yodd !increment yodd
+sta yodd
+lda xtem !dig out location of message
+ext mop !mask off op code bits
+add zmov !construct a mov
+set pbk
+sta *+3
+lda exon
+add exoloc !set move to address
+mov 0 !### constructed
+laq !get length of move
+neg
+lqa
+add yind
+sta yind !add lenth to line ponter
+laq
+add exon !add length to out buff pointer
+sta exon
+set pst
+ldx ylabxr,0
+bru 1,1 !exit
+nam !run-time,lower memory, service routiens
+ejt !Page: 000101
+rem !incall goes to the executive for input and
+rem ! initializes the inconv routine.
+incall: dld fzero !set up index registers
+dst xr10
+sta yodd !kill any character count left from last 
+sta yind !   line output
+lda n2 !real time input code
+bru top !since object spb to this routine let exec
+rem !return directly
+rem !indone checks to see if the flag which is
+rem ! set by carriage return in indonv has been
+rem ! set.  if it has not an error exists.
+indone: lda xr10
+bmi
+bru 1,1 !this is the way things should be
+ldz
+lqa
+lda n13 !set up message no.
+spb rmess,1 !output error message
+ldx wai,1 !upon return to to beginning of line
+bru 4,1
+rem !trap mode routine
+trap: stx trpxr,1 !save exit
+bar bdc,7
+bru dvdc !divide check
+bar buo,7
+bru ufl !underflow
+bar bmi,7 !overflow routine
+
+dld ninf !supply negative infinity for neg ofl
+bar bpl,7
+dld pinf !otherwise supply positive infinity
+dst trpst !hold value to be output
+lda oflnum !code for error message routine
+bru trp1
+ufl: bar bze,7 !underflow routine
+dld fzero !supply 0 for nfl point
+bar bnz,7
+dld fixmin !supply fix point min inf for fix mode
+dst trpst !hold value to be output
+lda  uflnum !code for rmess
+bru trp1
+dvdc: dld pinf !supply + infity for divide check
+dst trpst !hold
+lda dvdnum !for rmess
+trp1: lqa !hold message number
+ldo !set continue flag
+xaq !set codes in right order
+spb rmess,1 !output appropriate error mess
+fld trpst !load value to be supplied
+ldx trpxr,1
+rin
+set trpmode
+bru 0,1 !set out of trap and return to prog
+ejt !Page: 000102
+rem !rum time error message routine
+rem !   error messages may be in upper memory.
+rem !   mstab-lower 8k-contains word pairs
+rem !     the first word contains the starting
+rem !     location of the message.
+rem !     the second word contains the
+rem !     2s complement of the number of words
+rem !     in the message
+rmess: sla 1 !multiply cod enumber by 2
+dst mtemp
+stx msxr,1 !save exit
+lda yind !save value of line pointer for output
+sta yindt !buffer
+set pbk !getter safe than sorry
+ldx exon,3 !set up a carriage return
+lda crt !2 fills and carriate return
+sta exo,3
+inx 1,3
+stx exon,3
+ldx mtemp,1 !get message number
+dld mstab,1 !look location and length
+spb ylab,1 !output the label
+ldx exon,3 !get out buf ponter
+lda mtemp+1 !if flag is 0 do not output line no.
+bze
+bru rm1
+lda erin !place a @in@ in the line
+sta exo,3
+inx 1,3 !increment pointer
+stx exon,3 !save
+ldx wai,1 !get location where current line no is stored
+lda 1,1 !get the line no.
+maq !make into  double word length integer
+spb *+2,1 !get return address for next sub call
+bru rm1
+stx unfl3,1 !set up return form yint
+stx unfl2,2 !save index 2
+ldx exn1,3 !initialize xr3 for yint
+lda bl !set sign of line no. to blank
+sta temp
+ldx upbit,1 !yint is in upper bank
+ldz !no. to be output is not in a and q
+bru yint4,1 !output the line number
+rm1: spb ycrtb,1 !carriage return and check for full out buf
+lda mtemp+1 !get cont/term flag
+bmi output !if negative terminate
+lda yindt !otherwies restore line pointer
+sta yind
+bze rm2 !if interrupted line was at beginning
+lqa !hold new yind in q
+ldx zero,1 !use xr1 for counter
+lda exon
+ejt !Page: 000103
+add exoloc !construct store instruction
+set pbk
+sto *+5
+laq
+neg !form twos comp of yind
+sto *+4 !construct a bxh
+lda blanks !3 blanks
+sta 0,1 !#### constructed
+inx 1,1 !increment counter
+bxh 0,1 !#### constructed
+bru *+2
+bru *-4 !loop on store operation
+laq !get  no. of word added
+add exon !increment out buf ponter
+sta exon
+rm2: set pst
+ldx msxr,1 !restore exit
+bru 1,1 !exit
+reter: lmo !return encountered before a gosub
+lqa !set terminate flag
+lda exn5 !message number
+bru rmess
+test: bmi
+bru test3
+test2: bar bze,7
+bru 1,1
+bar bmi,7
+bru 1,1
+bru 2,1
+test3: bar bmi,7
+bru 2,1
+bru 1,1
+rem !ytst checks to see if there is unread data
+rem !   available in the data region. if
+rem !   there is control returns. other-
+rem !   wise a terminal message is given and
+rem !   the run ends.
+mat10: dst mat
+dld fzero
+dst matb
+lda min
+bru mat1
+mat11: dst mat
+bru *-3
+
+mat12: dst mat
+dld fzero
+dst matb
+lda zero
+bru mat1
+mat13: dst mat
+bru *-3
+mat20: bmi
+bru mat1-2
+srd 11
+ejt !Page: 000104
+cab exn10
+nop
+bru *+2
+bru mat2 !error-- subscript unreasonably large
+sta xr03 !shift in integer part
+ldz
+sld 0,3
+bru 1,1
+lda zero
+bru 1,1
+mat1: sta matt
+stx matt+1,1
+lda mat+1
+srd 9
+sta matta
+lda zero
+sld 9
+sta matta+1
+lda mata+1
+bmi
+bru mat2
+dld mata
+spb  mat20,1
+sta mattb
+sub matta
+bpl
+bru mat2
+lda matb
+bnz
+bru mat5
+sta mattb+1
+bru mat6
+mat5: lda matb+1
+bmi
+bru mat2
+dld matb
+spb mat20,1
+sta mattb+1
+sub matta+1
+bpl
+bru mat2
+mat6: lda mattb
+maq
+mpy matta+1
+xaq
+add mattb+1
+sla 1
+add mat
+sta mat
+lda matt
+bmi
+bru mat4
+ldx mat,1
+dld matc
+ejt !Page: 000105
+dst 0,1
+ldx matt+1,1
+bru 1,1
+mat4: ldx mat,1
+fld 0,1
+bru mat4-2 !exit
+mat2: lmo !subscript error
+lqa !set terminate flag
+lda exn6 !message number
+bru rmess
+ytime: lac !check for program over time limit
+rem ! nominal limit 64 sec unless spec by tester
+sub time !current elapsed time of program run
+cab tref
+bru 1,1 !still ok
+bru 1,1 !in last sixth of second
+lmo !set terminate flag
+lqa
+lda n4 !set up message no.
+bru rmess
+rem !push saves the return address for gosub
+push: sxg 2
+bxh exl-rst,1
+bru perr !too many gosubs running at once
+lda xr01
+sta rst,1
+inx 1,1
+sxg 0
+bru 1,1
+rem !pop pops up return address and returns to it
+perr: sxg 0
+lmo !set terminate flag
+lqa
+lda n12 !message number
+bru rmess
+pop: lda xr21
+sbo
+sta xr21
+sxg 2
+lda rst,1
+sta xr01
+sxg 0
+bru 2,1
+nam !run-time,lower memory, arith subroutines
+ejt !Page: 000106
+rem !power does just that and determines
+rem !   whteher the exponent is integer or real
+rem !   and checks for certain error conditions
+power: fst powa !exp in ax and base in qx
+stx powxr,1 !save return
+dld powa !exp in a and q
+xaq ,a !put bse in ax
+fst powb !save base
+bar bze,7 !check for base zero
+bru basez
+lda powb+1 !store sign of base in bass
+ext pinf !chop off everything but sign
+sta bass
+xaq ,a !exponent in ax, base in qx
+bar bze,7 !exponent zero
+bru expz
+spb ichkl,1 !lowwer mem entry to intchk
+bru  expr !real exponent
+lda powa+1 !get second word of exponent
+ext pinf !chop off everything but sign bit
+sta exps !save sign of exponent
+bpl
+bru pow1 !positive exponent
+maq ,a
+fmp fmone !make  exponent positive
+fst powa !save
+pow1: dld powa ! fetch exponent
+sra 11 !chop off all but mantissa
+sub exn30
+neg !form 30-exp[exponent]
+sta xr01
+lda powa !restore exponent
+ext mexp !get exponent bits out of the way
+srd 0,1 !shift exp into fix point integer
+fld fone
+fst powa !initialize running answer
+fld powb !start with base in ax
+bru pow3
+pow5: maq ,a
+fmp powb
+fst powb !get next 2**n power in
+pow3: xaq
+bev !is the next 2**n power in
+bru pow2 !n0
+maq ,a !yes
+fmp powa
+fst powa !powa hold running product
+fld powb
+pow2: xaq !get exponent straightened out
+srd 1 !adjust to look for nest power
+dcb fzero
+bru pow5
+bru *+2
+ejt !Page: 000107
+bru pow5 ! not finished yet
+lda exps !check sign of exponent
+bpl
+bru powex !completely finished
+fld fone
+cqx !$$$$$
+fdv powa !compute 1/answer
+bru powex1
+basez: xaq ,a !put exp in ax base in qx
+bar bmi,7
+bru *+7
+bar bze,7
+bru *+3
+fld fzero !exponent positive
+bru 1,1 !exit
+fld  fone !supply 1 for 0**0
+bru 1,1 !exit
+ldo !set continue flag for error mess,
+lqa !when exponent is negative
+lda exn10 !message number
+spb rmess,1
+fld  pinf !supply positive infinity for zero to a neg
+bru powex1
+expz: fld fone !exponent zero
+bru 1,1 !exit
+powex: fld powa
+powex1: ldx powxr,1 !restore exit
+bru 1,1
+expr: fld powb !real exponent, load base
+lda bass !check sign of base
+bmi
+bru expr1
+expr2: spb logb2,1
+maq ,a
+fmp powa !multiply by exponent
+spb exp2,1
+bru powex1
+expr1: ldo !set continue flag
+lqa
+lda exn11 !message no.
+spb rmess,1
+fld powb !take absolute val of base
+maq ,a
+fmp fmone
+fst powb
+bru expr2
+rem !int function
+rem !   forms integer part of number in ax
+rem !   and returns with answer in ax
+int: fst intarg
+bar bpl,7
+bru int2
+lda min
+sta intf
+ejt !Page: 000108
+cax !$$$$$
+fsu intarg
+fst intarg
+bru int3
+int2: lda zero
+sta intf !number positive
+int3: lda intarg !get part of arg with exponent
+sra 11
+sta intexp !save exponent
+bmi
+bru int7
+bze
+bru int7
+cab exn11
+bru int5
+bru int8
+sub exn30
+bpl
+bru int4
+set pbk
+neg
+add exsra
+sta *+4
+add exsla
+sta *+3
+lda intarg+1
+sra 0
+sla 0
+sta intarg+1 !save integer part of mantissa
+set pst
+int4: lda intf
+bpl
+bru int6
+cax !$$$$$
+fsu intarg !recomplement if arg was negative
+bru 1,1
+int6: fld intarg !load result
+bru 1,1
+int5: set pbk
+lda exn11
+sub intexp
+add exsra
+sta *+4
+add exsla
+sta *+3
+lda intarg
+sra 0
+sla 0
+sta intarg
+set pst
+int8: lda zero
+sta intarg+1
+bru int4
+int7: cax !$$$$$
+ejt !Page: 000109
+bru 1,1
+abs: bar bpl,7 !$$$$$ wait for aau in 225
+bru 1,1
+fst temp+10
+cax !$$$$$
+fsu temp+10
+bru 1,1
+log: stx logxr,1 !save return
+bar bmi,7
+bru *+5 !error if argument is zero
+bar bze,7
+bru *+11 !error if argument is zero
+ldx logxr,1 !restore exit
+bru logbe
+ldo
+maq !set continue flag
+lda exn2
+fst logarg !save argument
+spb rmess,1 !give error message
+fld logarg !restore argument
+spb abs,1 !take absolute value
+bru *-9 !go to log routine
+ldo !set continue flag
+lqa
+lda n3 !set message no. for log[0]
+spb rmess,1 !output error message
+fld ninf !supply negative infinity
+ldx logxr,1 !restore exit
+bru 1,1 !return
+rnd: dld rnd1 !random number generator a la kip moore
+dad rndk
+sld 5
+dad rnd1
+ext mexp
+sld 0
+dst rnd1
+fld rnd1
+cqx !don't normalize nonsense
+nox
+bru 1,1
+sqr: stx sqrxr,1 !save exit
+bar bpl,7 !test for plus or zero
+bru *+7
+fst sqt !save argument
+ldo !set message number
+lqa !set continuation flag
+spb rmess,1 !give error message
+fld sqt !restore argument
+spb abs,1 !take absolute value
+ldx sqrxr,1 !restore exit
+bru sqf !go to sqare root routine
+tan: fst temp+18
+stx temp+15,1
+spb cos,1
+ejt !Page: 000110
+fst temp+16
+fld temp+18
+spb sin,1
+fdv temp+16
+ldx temp+15,1
+bru 1,1
+nam !entrance vectors for run time routines
+ejt !Page: 000111
+rem !arctan entrance vector
+atanf: stx b,1
+ldx upbit,1
+bru arctan,1
+rem !square root entyrance vector
+sqf: stx b,1
+ldx upbit,1
+bru sqf2,1
+rem !sin/cos entrance vectors
+sin: stx b,1
+ldx upbit,1
+bru sinf,1
+cos: stx b,1
+ldx upbit,1
+bru cosf,1
+rem !entrance vectors for exp2 and exp
+exp2: stx b,1
+ldx upbit,1
+bru eexp2,1
+exp: stx b,1
+ldx upbit,1
+bru expsub,1
+rem !entrance vectors for log
+logbe: stx b,1
+ldx upbit,1
+bru lnsub,1
+logb2: stx b,1
+ldx upbit,1
+bru log2,1
+yunf: stx unfl3,1 !entrance vector for yunf[u]
+ldx upbit,1
+bru yunfu,1
+ichkl: stx ichxr,1 !entrance vector for intchk
+ldx upbit,1
+bru intchk+1,1
+incon: sxg 1 !get up to inconv
+ldx upbit,2
+bru inconv,2
+ytst: stx b,1
+ldx upbit,1
+bru ytstup,1
+nam !run-time garbage constants
+ejt !Page: 000112
+pinf: oct 1777777 !plus infinity
+oct 1777777
+ninf: oct 1774000 !smallest negative floating number
+oct 2000001
+fixmin: oct 2000000 !smallest signed fixed no.
+oct 2000001
+fone: equ exc
+fzero: equ exc+2
+fmone: fdc -1
+sign: equ fmone+1
+exoend: oct 1400 !end of output buffer
+out52: alf tim
+alf e# 
+out53: alf  mi
+alf ns.
+out54: alf  se
+alf cs.
+per: alf 00.
+bl20: alf 0 0
+bl: alf 00 
+crt: oct 0777737
+fill2: oct 0007700
+zbz: alf 0 0
+fzb: oct 0770060
+fill: dec 63
+bleom: oct 0777755
+bl32: alf    
+crlf: oct 0377272
+exsla: oct 0002000
+exoloc: dec exo
+inloc: dec inret-1 !used in inconv
+exsra: sra 0
+ldx01: ldx 0,1
+mexp: oct 3774000
+upbit: dec 8192
+o400: oct 400
+o200: oct 200
+nm2: dec -2
+dloc: dec 0
+dwrite: oct 3700002
+dread: oct 1200004
+tent: dec 100000
+dec 10000
+dec 1000
+dec 100
+exn10: dec 10
+exn1: dec 1
+min: dec -1
+zero: dec 0
+ex32: dec 32
+d12: equ e12 !fudge for screwed up dec pseudo
+l12: equ e13-e12
+ejt !Page: 000113
+d13: equ e13
+l13: equ e14-e13
+sixty: dec 60
+nam !run time lower memory constants
+ejt !Page: 000114
+rem !mstab is described in rmess
+mstab: dec er0
+dec er0-er1
+dec er1
+dec er1-er2
+dec er2
+dec er2-er3
+dec er3
+dec er3-er4
+dec er4
+dec er4-er5
+dec er5
+dec er5-er6
+dec er6
+dec er6-er7
+dec er7
+dec er7-er8
+dec er8
+dec er8-er9
+dec er9
+dec er9-er10
+dec er10
+dec -9
+dec er11
+dec -11
+dec d12
+dec -l12
+dec d13
+dec -l13
+rem !square root constants
+/2105: ddc -1
+/2107: equ mexp
+/2109: oct 0003777
+/2111: equ zero
+rem !sin/cos constants
+/2203: fdc 1.57079632679b1
+/2209: equ fzero
+/2212: equ mexp
+/2216: equ /2105
+/2218: oct 1400000
+/2224: equ fone
+/2225: equ fmone
+/2227: oct 0400000
+oct 0000000
+/2232: ddc .00015148419b2
+ddc -.00467376557b2
+ddc .07968967928b2
+ddc -.64596371106b2
+ejt !Page: 000115
+ddc 1.57079631847b2
+/2235: dec 30
+rem !arctan constants
+/2311: equ exc+2
+/2304: equ mexp
+/2313: dec 29
+/2318: equ /2227
+/2324: ddc -.004054058b2
+ddc .0218612288b2
+ddc -.0559098861b2
+ddc .0964200441b2
+ddc -.1390853351b2
+ddc .1994653599b2
+ddc -.3332985605b2
+ddc .9999993329b2
+/2326: ddc .7853981634b2
+/2315: ddc 1.57079632679b1
+rem !exp constants
+/6121: dec -25
+/6136: dec 8
+/6113: fdc 1.442695041b1
+fdc 3.321928094b2
+/6118: fdc 2b2
+/6111: oct 0012557
+oct 1412425
+/6149: ddc 1018b0e-10
+oct 0
+oct 1305363
+ddc 152527b0e-10
+ddc 1540353b0e-10
+ddc 13333558b0e-10
+ddc 96181291b0e-10
+ddc 555041087b0e-10
+ejt !Page: 000116
+ddc 2402265070b0e-10
+ddc 6931471806b0e-10
+/6104: equ fzero
+/6141: equ exn1
+/6152: oct 1000000
+rem !constants for log
+/5123: dec -27
+/5117: ddc .6931471806b0
+/5146: ddc 1.291991419b2
+/5147: ddc -2.63990909b4
+/5145: ddc -1.6567785798b2
+/5148: ddc -0.5b2
+/5144: oct 0552023
+oct 1463200
+/5113: oct 0003777
+/5106: equ fone
+/5120: equ fzero
+rem !yunf constants
+unflt8: oct 0006025
+rem !bdca  constants
+bdc30: fdc 1b1
+fdc 10b4
+fdc 1e2b7
+fdc 1e4b14
+fdc 1e8b27
+oct 332160
+oct 1571160
+oct 656356
+oct 265552
+oct 1527023
+oct 1403722
+bdc40: ddc 0
+bdc42: dec .30103b0
+bdc43: oct 0003146
+oct 631463
+bdc44: oct 603300
+bdc45: oct 403300
+bdc46: oct 12
+bdc47: oct 6000
+bdc48: oct 2000
+bdc49: oct 6060
+ejt !Page: 000117
+bdc50: srd 0
+bdc54: oct 0014000
+bdc55: oct 3777776
+bdc56: oct 0000000 !.k times 10 to -8
+oct 0002536
+bdc57: oct 0146314 !.1+1 in last place
+oct 1463150
+rndk: oct 0301744 !constant for rnd
+oct 0003661
+nam !compile time constants
+ejt !Page: 000118
+rem !*******************
+rem !*******************
+rem !s table is used in the compilation
+rem !of arithmetic expressions and for the
+rem !assignment of storage to variables
+rem !in particular it is used in the var
+rem !and arith subroutines
+rem !
+rem !character       depth in table
+s: dec !0                     0
+n1: dec 1 !1                     1
+two: dec  2 !2                     2
+n3: dec 3 !3                     3
+n4: dec 4 !4                     4
+n5: dec 5 !5                     5
+n6: dec 6 !6                     6
+n7: dec 7 !7                     7
+n8: dec    8 !8                     8
+n9: dec 9 !9                     9
+dec -20 !/                     10
+dec -13 !colon                 11
+dec -10 !quote                 12
+dec -20 !semi colon            13
+dec -9 !equal                 14
+dec -20 !reverse slash         15
+dec -1 !+                     16
+ten: dec 10 !a                     17
+n11: dec 11 !b                     18
+n12: dec 12 !c                     19
+n13: dec 13 !d                      20
+n14: dec 14 !e                     21
+n15: dec 15 !f                     22
+n16: dec 16 !g                     23
+n17: dec 17 !h                     24
+n18: dec 18 !i                     25
+dec -20 !not used              26
+dec -11 !.                     27
+dec -12 !not used              28
+dec -20 !not used              29
+dec -20 !less than             30
+dec -8 !cr                    31
+dec -2 !-                     32
+n19: dec 19 !j                     33
+n20: dec 20 !k                     34
+n21: dec 21 !l                     35
+n22: dec 22 !m                     36
+dec 23 !n                     37
+n24: dec 24 !o                     38
+n25: dec 25 !p                     39
+n26: dec 26 !q                     40
+dec 27 !r                     41
+dec -20 !not used              42
+dec 36 !$                     43
+ejt !Page: 000119
+dec -3 !*                     44
+dec -20 !not used              45
+dec -20 !greater than          46
+dec -5 !up arrow              47
+dec -20 !not used              48
+dec -4 !/                     49
+n28: dec 28 !s                     50
+dec 29 !t                     51
+n30: dec 30 !u                     52
+n31: dec 31 !v                     53
+n32: dec 32 !w                     54
+dec 33 !x                     55
+dec 34 !y                     56
+dec 35 !z                     57
+dec -20 !not used              58
+dec -14 !,                     59
+dec -14 !not used              60
+dec -6 !% and sq brack        61
+dec -7 !  and sq brack        62
+dec -20 !not used              63
+rem !   end of table s
+rem !********************
+rem !********************
+rem !********************
+rem !symbol table s2 is used in the
+rem !character translation routine
+rem !negative codes have the following meaning--
+rem !     -12 copy exactly do not delete blank
+rem !     -31--cr#end of line,begin compile
+rem !     -45 eom if encountered then no end
+rem !     -53 and -48 deleted from line
+rem !characters with positive codes are con-
+rem !     verted directly to that code
+rem !
+rem !character
+s2: dec 0 !0
+dec 1 !1
+dec 2 !2
+dec 3 !3
+dec 4 !4
+dec 5 !5
+dec 6 !6
+dec 7 !7
+dec 8 !8
+dec 9 !9
+dec 10 !/
+dec 11 !colon
+dec 61 !left paren
+dec 13 !semicolon
+dec 14 !equal
+dec 15 !reverse clash
+dec 16 !+
+dec 17 !a
+dec 18 !a
+ejt !Page: 000120
+dec 19 !c
+dec 20 !d
+dec 21 !e
+dec 22 !f
+dec 23 !g
+dec 24 !h
+dec 25 !i
+dec -63 !bell--never input
+dec 27 !.
+dec -12 !quote
+dec -63 !question mark
+dec 30 !less than
+dec -31 !cr
+dec 32 !-
+dec 33 !j
+dec 34 !k
+dec 35 !l
+n36: dec 36 !m
+n37: dec 37 !n
+n38: dec 38 !o
+n39: dec 39 !p
+n40: dec 40 !q
+n41: dec 41 !r
+dec -48 !tab
+dec 43 !$
+n44: dec 44 !+
+dec -45 !eom
+dec 46 !greater than
+dec 47 !up arrow
+dec -48 !space
+dec 49 !/
+n50: dec 50 !s
+n51: dec 51 !t
+n52: dec 52 !u
+dec 53 !v
+dec 54 !w
+n55: dec 55 !x
+dec 56 !y
+dec 57 !z
+dec -63 !line feed--never input
+n59: dec 59 !,
+dec 62 !right paren
+n61: dec 61 !left bracket
+n62: dec 62 !right bracket
+dec -63 !fill
+rem !end of table s2
+rem !**********************
+s3: dec 0
+dec 0
+dec 0
+dec 0
+dec 0
+dec 0
+dec 0
+ejt !Page: 000121
+dec 0
+dec 0
+dec 0
+dec 0
+dec 0
+dec -1
+dec -1
+dec -1
+dec 0
+dec 0
+dec 0
+dec 0
+dec 0
+dec 0
+dec 0
+dec 0
+dec 0
+dec 0
+dec 0
+dec 0
+dec 0
+dec 0
+dec 0
+dec -1
+dec -1
+dec 0
+dec 0
+dec 0
+dec 0
+dec 0
+dec 0
+dec 0
+dec 0
+dec 0
+dec 0
+dec 0
+dec 0
+dec 0
+dec 0
+dec -1
+dec 0
+dec 0
+dec 0
+dec +4
+dec +5
+dec 0
+dec 0
+dec 0
+dec 0
+dec 0
+dec 0
+dec 0
+dec +3
+dec 0
+ejt !Page: 000122
+dec +1
+dec +2
+dec 0
+rem !*****end of translation tables***********
+n60: dec 60
+u: equ 0
+varloc: dec vartab
+ploc: lda p
+gloc: lda g
+irloc: lda exir
+lloc: lda exl
+vlast: equ ploc
+m3: oct 3777700
+zdld: dld 0
+zfmp: fmp 0
+zfdv: fdv 0
+mar: oct 3777000
+dimloc: lda dimx
+exuloc: lda exu
+fntloc: lda fnt
+fltw: oct 0022400
+oct 0000000
+oct 0037100
+oct 0000000
+oct 0072342
+oct 0000000
+oct 0156765
+oct 1604000
+fdc 1e16b54
+fdc 1e32b107
+fdc 1e64b213
+readz2: fld d,2
+readz3: inx 2,2
+readz: spb ytst,1
+fltm: lda flta
+dec -15
+flty: dec 1
+dec 1e-1b0
+dec 1e-2b0
+dec 1e-3b0
+dec 1e-4b0
+dec 1e-5b0
+dec 0
+dec 0
+zar: fsu exu
+fld exc+2
+fst exu
+maq ,a
+spb exp,1
+spb log,1
+spb mat10,1
+ejt !Page: 000123
+spb mat11,1
+spb mat12,1
+spb mat13,1
+dst matb
+fst mata
+fst matc
+fst matb
+qabs: lda abs
+qatn: lda atanf
+qcos: lda cos
+qexp: lda exp
+qint: lda int
+qlog: lda log
+qrnd: lda rnd
+qsin: lda sin
+qsqr: lda sqr
+qtan: lda tan
+zlab: spb ylab,1
+zunf: spb yunf,1
+ztab: spb ytab,1
+zcrt: spb ycrt,1
+zcrtb: spb ycrtb,1
+zbru: bru 0
+zspb1: spb 0
+zret: bru 1,1
+zfld: fld 0 !!changed from -- to 0 to make legal
+zfldt: fld temp
+zfst: fst 0 !!changed from -- to 0 to make legal
+zfstt: fst temp
+zfstt2: fst temp+2
+zfad: fad 0 !!changed from -- to 0 to make legal
+zfsu: fsu 0 !!changed from -- to 0 to make legal
+zfsut: fst temp
+zfsut2: fsu temp+2
+zbarp: bar bpl,7 !!added the ,7 to make legal
+zbarm: bar bmi,7 !!added the ,7 to make legal
+zbarz: bar bze,7 !!added the ,7 to make legal
+zbarn: bar bnz,7 !!added the ,7 to make legal
+zout: bru output
+dec 0
+zspb0: spb 0,0
+ztst: spb test,1
+ztst2: spb test2,1
+ztim: spb ytime,1
+zfad1: fad exc
+zfsu1: fsu exc
+zcqx: cqx
+zpush: spb push,1
+zpop: bru pop
+zstwr: stx wai,1 !for error message routine at comp time
+reloc: dec reter-2
+znop: nop
+powspb: spb power,1
+erin: alf in
+ejt !Page: 000124
+bl2: alf 0
+blcr: oct 0006037
+o6000: oct 6000
+eloc: lda e
+nm8: dec -8
+nm6: dec -6
+zsht: spb ysht,1
+n242: dec 242
+vinit: oct 17774 !first available location for variables
+4bit: z01 0
+ime: alf ime
+trpbr: bru trap
+bru trap
+varmov: dec vartab+1
+dec -296
+fntmov: dec fnt+1
+dec -27
+dimmov: dec dimx+1
+dec -53
+vcmov: dec vc+1
+dec -48
+clnmov: dec exo+1 !clean up 6k area for debugging
+dec e-ux
+movds: dec vc
+dec -11
+mop: oct 3700000
+zmov: mov 0
+rem !compile time constants needed for input
+put: alf put
+zincl: spb incall,1
+zincon: spb incon,1
+zindn: spb indone,1
+one: equ n1
+n2: equ two
+exn2: equ n2
+exn3: equ n3
+exn5: equ n5
+exn6: equ n6
+exn7: equ n7
+exn11: equ n11
+exn22: equ n22
+exn30: equ n30
+exn31: equ n31
+ycrt4: equ exn31
+ycrt5: equ fill
+blanks: equ bl32
+oflnum: equ n8
+uflnum: equ n9
+dvdnum: equ n7
+nam !working storage for run time routines
+ejt !Page: 000125
+rem !arctan working storage
+/2302: equ b
+/2303: equ b+8
+/2306: equ b+6
+/2307: equ b+7
+/2308: equ b+9
+/2310: equ b+2
+/2316: equ b+4
+rem !square root working storage
+/2102: equ b+2
+/2108: equ b
+/2110: equ b+4
+sqrxr: equ ws+12
+sqt: equ /2102
+rem !sin/cos working storage
+/2202: equ b
+/2205: equ b+2
+/2207: equ b+6
+/2208: equ b+7
+/2210: equ b+8
+/2211: equ b+9
+/2230: equ b+4
+rem !power working storage
+powxr: equ ws+15
+powb: equ ws+18
+powa: equ ws+20
+bass: equ ws+16
+exps: equ ws+17
+rem !memory allocation for exp
+/6105: equ b
+/6134: equ b+2
+/6109: equ b+4
+/6128: equ b+6
+/6119: equ b+10
+rem !working storage for log
+/5138: equ b
+/5112: equ b+2
+/5114: equ b+4
+/5107: equ b+6
+/5152: equ b+8
+/5143: equ b+10
+logt: equ ws+26
+logxr: equ ws+12
+logarg: equ /5138
+rem !intchk working storage
+ichk1: equ ws+48
+ichxr: equ ws+47
+rem !working store for ytab, ycrt,and ysht
+yind: equ ws+14
+yindt: equ ws+25
+yodd: equ b+40 !hold no. of fills output and anot accounted
+rem !   for in yind
+rem !ylab working storage
+ejt !Page: 000126
+ylabxr: equ b+12
+rem !yunf working storage
+unfl1: equ ws+22
+unfl2: equ ws+23
+unfl3: equ ws+24
+word: equ ws+34
+rem !int function working storage
+intarg: equ b
+intexp: equ b+2
+intf: equ b+3
+rem bdca working storage
+bdc61: equ ws+28
+bdc62: equ ws+29
+bdc63: equ ws+30
+bdcarg: equ ws+32
+rem !rnd working storage
+rnd1: equ ws+40
+rem !mat working storage
+mat: equ b+22
+mata: equ b+24
+matb: equ b+26
+matc: equ b+28
+matt: equ b+30
+matta: equ b+32
+mattb: equ b+34
+rem !rmess working storage
+mtemp: equ ws+44
+msxr: equ ws+46
+xtem: equ exo+859 !very temporary index storage
+rem !trap working storage
+trpxr: equ ws+13
+trpst: equ ws+42
+wai: equ b+39 !contains location minu one of last line
+rem !     to be executed
+datan: equ b+38 !constant for a run indicating amount
+rem !     of data avail in data area
+tref: equ b+41
+rem !ws thru ws+7 not used
+nam !compile time working storage  6k area
+ejt !Page: 000127
+org vc !compile time 6k working storage
+apf: bss 1 !flag used by trans for literal print
+arr: bss 4
+arul: bss 1
+artp: bss 6
+ctem: bss 2
+cxtem: bss 1
+deft: bss 1
+endl: bss 1 !points to last word in l region
+exln: bss 1 !constant region pointer [relative]
+fltc: bss 1
+fltd: bss 1
+flte: bss 1
+fltn: bss 1 !count of char in flta
+fltr: bss 4
+flts: bss 2
+fltt: bss 2
+fltx: bss 2
+flta: bss 16
+fn: bss 1 !f-table pointer
+gn: bss 1 !go-table pointer
+ift: bss 1
+instt: bss 1 !temporary storage for inst
+ir: bss 1 !saves character pointer for list
+ir3: bss 1 !saves word pointer for list
+irn: bss 1
+nn: bss 1
+readx: bss 1 !flag to see if data is necessary
+stx3: bss 1
+ermov: bss 2 !constants for moving comp time er messages
+uloc: bss 1 !beginning of source prog [absolute]
+vart: bss 5
+vavail: bss 1 !next location of available space
+savlen: bss 1
+endf: bss 1
+er: equ b+37
+tflag: equ b+15 !teach or regular basic
+begl: equ t+10 !location of beginning of line in source
+var7: equ vart+1
+xr00: eqo 0
+xr01: eqo 1
+xr02: eqo 2
+xr03: eqo 3
+xr10: eqo 4
+xr12: eqo 6
+xr13: eqo 7
+xr21: eqo 11
+rem !the load routine is used when
+rem !   preparing the system to be stored on
+rem !   the disk by the 235 exec.
+loc 5000
+load: equ *
+dld ldcon1
+ejt !Page: 000128
+mov work
+bru 1,2 !return to exec to complete loading
+ldcon1: oct 31400
+dec -1280
+end load

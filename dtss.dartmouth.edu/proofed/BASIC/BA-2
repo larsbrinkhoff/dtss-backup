@@ -1,0 +1,1866 @@
+bmi
+bru flt12
+fld fltx
+flt13: dld fltr
+dst 0
+dld fltr+2
+dst 2
+rin
+set trpmode
+bru 2,3
+flt12: fld fzero
+fsu fltx
+bru flt13
+flt20: lda flta,3
+sub ten
+bmi
+bru flt21
+lda flta,3
+sub n16
+bze
+bru flt22
+lda flta,3
+sub n32
+bze
+bru flt23
+bru flter
+flt22: inx 1,3
+flt21: lda zero
+sta flts+1
+bru flt24
+flt23: lda min
+sta flts+1
+inx 1,3
+flt24: lda 3
+sub fltn
+bmi
+bru flt25
+bnz
+bru flter
+lda flta,3
+sta flte
+flt26: lda 3
+sub fltn
+bmi
+bru flter
+lda flts+1
+bze
+bru flt72
+lda fltc
+sub flte
+sta flte
+flt74: bmi
+bru flt73
+lda zero
+ejt !Page: 000053
+sta flts+1
+bru flt70
+flt72: lda fltc
+add flte
+sta flte
+bru flt74
+flt73: neg
+sta flte
+lda min
+sta flts+1
+flt70: ldx zero,3
+dld exc
+dst fltt
+lda flte
+flt29: bev
+bru flt27
+fld fltt
+maq ,a
+fmp fltw,3
+fst fltt
+flt27: bxh 12,3
+bru flt28
+inx 2,3
+lda flte
+sra 1
+sta flte
+bru flt29
+flt25: lda flta,3
+sla 2
+add flta,3
+sla 1
+inx 1,3
+add flta,3
+sta flte
+bru flt26
+flt28: lda flts+1
+bmi
+bru flt30
+fld fltx
+maq ,a
+set ntpmode !turn of trap interrupt
+fmp fltt
+fst fltx
+bar boo,7 !constant outa of range
+bru flter !generate error return
+bru fltex
+flt30: fld fltx
+fdv fltt
+fst fltx
+bru fltex
+flt80: lda 3
+sub fltn
+bpl
+bru flt81
+ejt !Page: 000054
+bru flt82
+flt81: lda fltc
+sta flte
+bru flt74
+ejt !Page: 000055
+rem !inst converts bce integers to single
+rem !   word length binary integers
+inst: lda l,2
+sub ten
+bpl
+bru inst8
+add ten
+sta instt
+inst3: inx 1,2
+lda l,2
+sub ten
+bpl
+bru inst2
+lda instt
+sla 2
+add instt
+sla 1
+add l,2
+sta instt
+bru inst3
+inst2: lda instt
+bru 2,3
+inst8: dld ermov
+mov lab5
+bru error
+ejt !Page: 000056
+rem !var determines the validity and location
+rem !of variables and generates a floating
+rem !load or store depending  a flag
+rem !entered from for with t+9 set to 1
+var10: stx stx3,3
+lda l,2
+sta 3
+lda s,3
+bmi
+bru varer
+sub ten
+bmi
+bru varer
+sta t+8
+cab n26 !check for $
+bru var11-1
+bru *+1
+lda tflag !$ never legal in regular basic
+bze
+bru var13
+lda endf
+bze var13 !illegal variable
+inx 1,2
+var11: lda endl
+sub 2
+bmi
+bru var2
+lda l,2
+sub ten
+bpl
+bru var2
+lda l,2
+sta t+7
+inx 1,2
+lda l,2
+sub ten
+bmi
+bru varer
+bru var3
+var13: ldx arr,0 !restore xr s saved by arith
+ldx arr+1,1
+ldx arr+3,3
+bru varer !illegal variable
+var2: lda ten
+sta t+7
+var3: lda t+8
+lqa
+lda t+7
+mpy n11
+laq
+sta xr03
+lda vartab,3 !check to see if already defined
+bnz
+ejt !Page: 000057
+bru *+6 !already defined
+lda vavail !define now
+sta vartab,3 !store def in table
+sub two !decrement avail space pointer
+sta vavail
+add two !reset a to location of variable
+sta t+8
+lda t+9
+bmi
+bru var4
+bnz
+bru var32
+lda zfld
+add t+8
+sta arp,1
+inx 1,1
+ldx stx3,3
+bru 2,3
+var32: lda t+8
+sta t+1
+ldx stx3,3
+bru 2,3
+var4: lda zfst
+add t+8
+sta p,1
+inx 1,1
+ldx var7,3
+bru 2,3
+varer: dld ermov
+mov lab7
+bru error
+var: stx vart,0
+stx vart+1,3
+lda l,2
+sta 3
+lda s,3
+sub ten
+bmi
+bru varer1
+sta t+8
+cab n26 !check for $
+bru var1
+bru *+2 !yes
+bru var1
+lda tflag !$ not legal in regular basic
+bze
+bru varer
+lda endf
+bze varer !illegal variable for tested prog
+var1: inx 1,2
+lda l,2
+sub n61
+bze
+ejt !Page: 000058
+bru var20
+ldx vart+1,3
+bru var11
+varer1: equ varer
+var20: ldx one,0
+lda zero
+sta t+6
+stx vart+2,2
+lda zar+12
+sta p,1
+inx 1,1
+var21: inx 1,2
+lda l,2
+sub n61
+bnz
+bru var22
+inx 1,0
+bru var21
+var22: sub one
+bnz
+bru var23
+lda 0
+sub one
+sta 0
+bze
+bru var24
+bru  var21
+var23: add n3
+bze
+bru var25
+add n28
+bze
+bru varer1
+bru var21
+var25: lda 0
+sub one
+bnz
+bru var21
+lda min
+sta t+6
+lda n31
+sta l,2
+bru var21
+var24: lda n31
+sta l,2
+lda 2
+add one
+sta vart+3
+lda t+8
+sla 1
+sta 3
+add dimloc
+sta vart+4
+lda dimx,3
+ejt !Page: 000059
+bpl
+bru var26
+lda t+6
+bmi
+bru var27
+lda n11
+sla 9
+add one
+sta dimx+1,3 !store subscript information
+lda vavail !calculate new valie of vavail
+sub n22
+sta vavail
+add two !calculate location of array
+sta dimx,3 !store in table
+inx 2,3
+var28: lda vlast
+sub vavail !check for blatant overflow
+bmi
+bru var26
+varer2: dld ermov
+mov lab1
+bru error
+var27: lda n11
+sla 9
+add n11
+sta dimx+1,3
+lda vavail !compute new pointer and location for
+sub n242 !standard 10x10 aray [11x11]
+bru var28-4
+var26: ldx vart+2,2
+inx 1,2
+spb arith,3
+bru varer1
+lda zar+11
+sta p,1
+inx 1,1
+lda t+6
+bmi
+bru var30
+lda vart+4
+add zdld
+sta p,1
+inx 1,1
+lda zar+8
+sta p,1
+var31: inx 1,1
+lda l,2
+sub n31
+bnz
+bru varer
+ldx vart+3,2
+ldx vart,0
+ldx vart+1,3
+bru 2,3
+ejt !Page: 000060
+var30: inx 1,2
+spb arith,3
+bru varer1
+lda zar+13
+sta p,1
+inx 1,1
+lda vart+4
+add zdld
+sta p,1
+inx 1,1
+lda zar+9
+bru var31-1
+ejt !Page: 000061
+rem !error does the necessary bookkeeping
+rem !   for the output of error messages.
+error: ldx ermov,3
+inx 7,3
+lda erin
+sta 0,3
+lda l
+sla 12
+sta t
+lda l+1
+sub ten
+bpl
+bru err2
+lda l+1
+sla 6
+add t
+sta t
+lda l+2
+sub ten
+bpl
+bru err33
+lda l+2
+add t
+sta 1,3
+lda l+3
+sub ten
+bpl
+bru err44
+lda l+3
+sla 12
+sta t
+lda l+4
+sub ten
+bpl
+bru err5
+lda l+4
+sla 6
+add t
+add n31
+err10: sta 2,3
+inx 3,3
+stx ermov,3
+lda er
+add one
+sta er
+cab ten
+bru list1
+nop
+err20: lda n31
+sta ycrt4
+lda 3
+sub eloc
+sta exon
+ejt !Page: 000062
+lda crt
+sta exo
+ldx zero,1
+bru output,1
+err2: lda bl2
+bru *+2
+err33: lda bl
+add t
+sta 1,3
+err44: lda crt
+bru err10
+err5: lda blcr
+add t
+bru err10
+err30: ldx ermov,3
+inx 7,3
+bru err20
+ejt !Page: 000063
+rem !run performs the necessary checks to
+rem !   make sure that the entire source program
+rem !   compiled correctly, initializes run-
+rem !   time areas and transfers to the object
+rem !   program.
+run: ldx gn,2
+bxh 81,2
+bru input8
+ldx exln,2
+bxh 151,2 !check for too many constants
+bru input8
+ldx dpnt,2 !check for too much data
+bxl 40,2
+bru *+4
+dld ermov
+mov lab16
+bru err30
+lda nn
+bze
+bru *+8
+dld ermov
+mov lab21
+lda ermov
+add n7
+sta ermov
+lda one
+sta er
+lda ploc
+add 1
+sub vavail !ccheck for program too long
+bmi
+bru *+4
+dld ermov
+mov lab23
+bru err30
+ldx zero,2
+ldx zero,3
+run25: lda fnt,3
+add one
+bze
+bru run3
+inx 1,3
+bxl 26,3
+bru run25
+lda gn
+bze
+bru run2
+run1: lda 2
+sub gn
+bpl
+bru run2
+lda g,2
+sta t
+ejt !Page: 000064
+ldx zero,3
+run7: lda f,3
+cab t
+bru run10
+bru run9
+run8: dld ermov
+mov lab14
+lda ermov
+add n6
+sta ermov
+lda er
+add one
+sta er
+ldx zero,0
+lda g,2
+maq
+stx t,1
+ldx one,1
+run62: dvd tent,1
+bze
+bru run63
+inx 1,0
+run64: sta t,1
+lda zero
+inx 1,1
+bxl 6,1
+bru run62
+ldx ermov,1
+lda fill2
+add t+1
+sla 6
+add t+2
+sta 0,1
+lda t+3
+sla 6
+add t+4
+sla 6
+add t+5
+sta 1,1
+lda crt
+sta 2,1
+inx 3,1
+stx ermov,1
+ldx t,1
+inx 1,2
+lda er
+sub ten
+bmi
+bru run1
+bru run2
+run63: bxl 1,0
+lda fill
+bru run64
+run10: inx 2,3
+ejt !Page: 000065
+lda 3
+sub fn
+bmi
+bru run7
+bru run8
+run9: lda f+1,3
+add zbru
+add ploc
+sta g,2
+inx 1,2
+bru run1
+run2: lda zout !store branch to output in object
+sta p,1
+lda readx !check for read statement
+bpl
+bru run5 !no read inst
+lda datai !check to make sure data was input
+bnz
+bru run6
+dld ermov
+mov lab12 !*no data*
+bru err30 !terminal error
+run6: sta datan !word after last entry in last data record
+lda nm2
+sta datai
+lda dpnt !set last record
+sta dend
+cab two !if zero or two then dont read in again
+bru run6a
+bru run6a
+sxg 1 !else write out last record and read in first
+spb dchek,1 !     check last dick op
+lda dend
+add sign
+sta plist+2
+lda plist+1
+ext o400
+add o200
+sta plist+1
+sxg 4
+lda n5
+spb 8192,1 !go write
+dec plist
+set pst
+sxg 1
+spb dchek,1 !wait for write to be completed
+lda dread !change plist to read and initialize
+sta plist
+lda dloc
+sta plist+1
+ldz
+chs
+sta plist+2 !1st read will bring in 256 words
+lda n5
+ejt !Page: 000066
+sxg 4
+spb 8192,1 !     bring in 1st 2 records
+dec plist
+set pst
+sxg 1
+spb dchek,1
+lda plist !change to read only 1 record
+sub n2
+sta plist
+lda plist+1
+ext o400
+add o200
+sta plist+1
+lda n2
+sxg 0
+run6a: sta drec
+ldz
+sta dpnt
+run5: lda er
+bze
+bru *+3
+ldx ermov,3
+bru err20
+lda tflag !there are no $ var to init in reg
+bze !basic
+bru run5a
+dld movds !initialize $ variables
+mov ds !pick up the dollar sign part of the sym tab
+ldx zero,1
+fld fzero
+lda vc,1 !pick up entry from symbol table
+bze *+4 !skip if no tassigned
+sta xr02 !set up xr for store
+fst 0,2 !zero one variable
+inx 1,1
+bxl 11,1 !go thru all $ variables
+bru *-7
+lda dimx+53 !zero $ array
+bmi
+bru run5a !skip if $ array not used
+srd 9 !determine no. of elements
+xaq
+sra 9
+sta t
+ldz
+mpy t
+laq !number of elements*2
+ado !set up mov
+neg
+lqa
+ldx dimx+56,3
+fst 0,3 !zero first element to prime the mov
+lda xr03 !location of first element of array
+ejt !Page: 000067
+set pbk
+sto *+2 !construct the mov
+ado !to address
+mov 0 !##### constructed !!changed from -- to 0 to make legal
+run5a: set pst
+ldx zero,2
+ldx ploc,0
+ldx ploc,1
+ldx zero,3
+lda reloc
+sta rst !initialize return stack to error trap
+ldo !initizlize return stack poniter
+sta xr21
+ldz
+sta yind !set no. of words in line to zero
+sta yodd !init odd character counter
+dld rnd !initialize random
+dst rnd1
+rin
+set trpmode !etner trap
+bru p,2
+run3: dld ermov
+mov lab13
+lda ermov
+add n7
+sta ermov
+lda one
+sta er
+bru run1
+nam !run-time,upper mem, arithmetic subroutines
+ejt !Page: 000068
+rem !cd225d2.010 - fl-pt arctan - aau
+rem !general electric co comp dept. phx.
+rem !cor  7 aug 62.
+rem !141 source language cards.
+arctan: ldx b,1
+fst /2302
+dld /2302
+sra  11
+sta /2303 !store exponent
+lda /2302
+ext /2304 !mask off exponent
+sld 0
+bze
+bru 1,1 !return with zero ans.
+stx /2306,0
+stx /2307,2
+sta /2308 !save for sign test at end
+bpl !is mant plus
+bru /2309 !yes
+dst /2310 !store mant.
+dld /2311 !negative mant.
+dsu /2310 !make it pos.
+ext /2304 !put on leading zeros
+/2309: sld 6
+dst /2310
+lda /2303
+bmi ! is exp negative
+bru /2312 !yes fo to /2312
+sta 2 ! positive exp
+bxl 29,2 !is exp less than 29
+bru /2314
+dld /2315 ! no return with pi/2 as ans
+dst /2316
+bru /2325+5
+/2314: dld /2318
+srd 0,2
+dst /2316
+dad /2310
+dst /2302 !x+1
+dld /2310
+dsu /2316
+bru /2319
+/2312: neg !make exp pos
+sta 2 ! put in x2 for shift
+bxl 8,2 !is exp 8 or more
+bru *+3
+fst /2316 !     yes return with arg as ans  still in
+bru /2317+1
+dld /2310
+srd 0,2
+dst /2310
+dad /2318
+dst /2302 !x+1
+ejt !Page: 000069
+dld /2310
+dsu /2318
+/2319: dst /2310
+set fixpoint
+maq ,a
+maq ,a
+fld /2310
+fdv /2302
+fst /2310
+maq ,a
+fmp /2310
+dld /2310
+srd 2
+dst /2310
+dld /2311
+dst /2316
+sta 2
+fst /2302
+dld /2302
+srd 2
+dst /2302
+/2323: dld /2316
+sld 2
+dad /2324,2
+dst /2316
+fld /2316
+maq ,a
+bxh 14,2
+bru /2325
+fmp /2302
+inx 2,2
+fst /2316
+bru /2323
+/2325: fmp /2310
+fst /2316
+dld /2316
+sld 2
+dad /2326 !ans fixed point
+dno 31
+srd 8 !shift over
+dst /2316
+lda /2308 !is ans pos or neg
+bpl
+bru /2327 !arc tan ans is pos
+dld /2311
+dsu /2316
+ext /2304
+dst /2316
+/2327: dld /2311
+lda 000
+sub /2313
+srd 8
+xaq
+ory /2316 !put on exponent
+ejt !Page: 000070
+/2317: set nflpoint
+maq ,a
+maq ,a
+fld /2316
+ldx /2307,2
+ldx /2306,0
+bru 1,1
+rem !case card - cd225d2.010
+rem !cd225d2.006 - fl-pt swuare root - aau.
+rem !general electric co comp dept, phx.
+rem !11 jan 62
+rem !48 source languages.
+sqf2: fst /2102
+ldx b,1
+dld /2102
+ext /2107
+bze
+bru 1,1
+sub /2107 !add one to exp
+srd 1
+dst /2108
+lda /2102
+ext /2109
+sub /2107 !add one to exp
+sra 1
+ory /2108
+stx /2110,1
+ldx /2111,1
+/2112: maq ,a
+maq ,a
+fld /2102
+fdv /2108
+fad /2108
+inx 1,1
+fst /2108
+lda /2108
+add /2107 !subtract one from exponent
+sta /2108
+bxl  4,1
+bru /2112
+maq ,a
+maq ,a
+fld /2108
+ldx /2110,1
+bov
+bru *+1
+bru 1,1
+rem !last card - cd225d2.006
+rem !cd225d2.008 - fl-pt sin/cos - aau
+rem !general electric co comp dept, phx.
+rem !rev 9 feb 62.
+rem !181 source language cards.
+cosf: fad /2203
+sinf: fst /2205
+ejt !Page: 000071
+ldx b,1
+bar bze,7 !    if the argument zero
+bru 1,1 !yes return
+fld /2205
+cqx
+fdv /2203
+stx /2207,2
+stx /2208,0
+lda /2209 !zero out sign test word
+sta /2210
+fst /2202
+dld /2202
+sra  11
+sta /2211 !save exponent of arg
+lda /2202
+ext /2212 !separate off mant.
+sld 0 !put correct sign on a reg.
+dst /2202
+bpl !is the mant pos
+bru /2213 !yes go to bsc1
+lda /2212
+ory /2202
+dld /2209
+dsu /2202
+dst /2202 !makeneg.mant pos.
+lda /2210 !set sign indicator neg
+chs
+sta /2210
+/2213: lda /2211 !is exp neg
+bmi
+bru /2214 !yes
+sta 2
+bxl 28,2
+bru /2215
+dld /2216
+bru /2217
+/2215: dld /2202
+sld 0,2
+sta /2205
+sld 6 !shift point left six
+ext /2218 !1400000
+dst /2202
+lda /2205
+srd 11 !store number of quardrants passed
+sta /2211 !in expasc
+dld /2202
+bnz
+bru /2219
+xaq !is lower part zero
+bnz
+bru /2219
+lda /2211 !what quad are we in
+bod
+bru /2220 !1 0r 3
+ejt !Page: 000072
+dld /2209 !zero is ans -3 or 183
+bru /2217
+/2220: sra 1
+bod !is this quad 3
+bru /2221 !yes
+lda /2210 ! no
+bmi !was original arg minus
+bru /2222 !yes
+/2223: dld /2224 !+1 is ans
+bru /2217
+/2221: lda /2210 !270 degrees
+bmi
+bru /2223 !original arg was minus so ans is +1
+/2222: dld /2225
+bru /2217
+/2219: lda /2211
+bev
+bru /2226 !arg is in quad 1or 3
+dld /2227 !arg is in quad 2 or 4
+dsu /2202 !1, - arg
+dst /2202
+/2226: lda /2211
+sra 1 !are we in quad 3 or 4
+bev
+bru /2228 !no
+lda /2210 !yes  change sign of indicator word
+chs
+sta /2210
+/2228: set fixpoint
+fld /2202
+maq ,a
+fmp /2202
+dld /2209
+dst /2230
+sta 2
+fst /2205
+dld /2205
+sld 2
+dst /2205
+/2231: dld /2230
+sld 2
+dad /2232,2
+dst /2230
+fld /2230
+maq ,a
+bxh 8,2 !have all constants been added in
+bru /2233
+fmp /2205
+inx 2,2
+fst /2230
+bru /2231
+/2233: fmp /2202 !last term
+fst /2230
+dld /2230
+ejt !Page: 000073
+sld 3
+dno 31
+srd 8
+dst /2202 !ans
+lda /2210
+bpl
+bru /2234
+dld /2209 !if neg g  negate ans
+dsu /2202
+ext /2212
+dst /2202
+/2234: lda 000
+sub /2235
+sla 11
+ory /2202 !put exp on ans
+lda /2209 ! set up for normal return
+/2236: ldx /2208,0
+set nflpoint
+cqx
+ldx /2207,2
+fld /2202
+bov !    turn off overflow
+bru *+1
+sla 1 !turns on overflow if there is an  error
+bru 1,1
+/2214: neg !neg exp
+sta 2
+bxh 9,2 !is exponent less than -9
+bru /2238 !exp too small
+dld /2202
+sld 6
+srd 0,2
+dst /2202 !line up frastion part
+lda /2209 !put zero in for quad count
+sta /2211
+bru /2219
+/2238: dld /2205 !ans is arg for small exp
+/2217: dst /2202
+bru /2236 !return
+rem !last card - cd225d2.008
+rem !
+rem !cd225d2.012 - flppt exponential - aau.
+rem !general electric co comp dept, phx.
+rem !cor 4 apr 63.
+rem !179 source-language cards.
+expsub: ldx b,1
+fst /6105
+bar bze,7
+bru /6100 !argument is 0
+fsu fone
+bar bnz,7
+bru *+3
+fld /6111 !argument is 1
+bru 1,1
+ejt !Page: 000074
+fld /6105
+maq ,a
+fmp /6113 !multiply by 1/ln2
+fst /6105
+bru /6101
+eexp2: ldx b,1
+fst /6105
+bar bnz,7
+bru *+3
+/6100: fld fone !argument is 0
+bru 1,1
+fsu fone
+bar bnz,7
+bru *+3
+fld /6118 !argument is 1
+bru 1,1
+/6101: stx /6134,1
+lda /6105
+sra 11
+sta /6119
+dld /6105
+sld 8
+dst /6109
+bpl
+bru *+4
+dld /6104
+dsu /6109
+dst /6109
+lda /6119
+bpl
+bru /6124
+neg
+sta xr03
+add /6121
+bpl
+bru /6100 !answer is close to 1
+ldz
+sta /6119
+dld /6109
+srd 0,3
+bru /6126
+/6124: lda /6136
+sub /6119
+bmi
+bru /6132
+ldx /6119,3
+lda /6109
+maq
+sld 0,3
+sta /6119
+dld /6109
+sld 0,3
+/6126: spb /6127,1
+dst /6109
+ejt !Page: 000075
+lda /6119
+add /6141
+sta /6119
+lda /6109
+maq
+lda /6119
+srd 8
+dst /6128
+dld /6109
+srd 8
+lda /6128+1
+dst /6109
+lda /6105+1
+bmi
+bru /6120
+fld /6109
+set nflpoint
+/6131: ldx /6134,1
+bru 1,1
+/6120: cqx
+fld fone
+set nflpoint
+fdv /6109
+bru /6131
+/6132: fld fzero
+bru /6131-1
+/6127: dst /6128
+set fixpoint
+ldx zero,3
+cax
+fad /6149,3
+maq ,a
+fmp /6128
+fst /6128+2
+dld /6128+2
+inx 2,3
+bxl 18,3
+bru /6127+4
+srd 1
+add /6152
+bru 1,1
+rem !last card  -  cd225d2.012
+rem
+rem !cd225d2.014 - floating-pont log 2,e,10 aau.
+rem !general electric co comp dept, phx.
+rem !19 jan 62.
+rem !146 source-language cards.
+lnsub: ldz
+bru *+2
+log2: lmo
+ldx b,1
+sta logt
+ldz
+sta /5114+1
+ejt !Page: 000076
+set fixpoint
+fst /5138
+fsu /5106
+fst /5107
+dld 0
+dst /5112
+lda /5138
+ext /5113
+sta /5114
+dld /5138
+sld 8
+spb /5115,3
+srd 6
+dad /5114
+dst /5138
+lda logt
+bmi
+bru *+5
+fld /5138
+maq ,a
+fmp /5117
+fst /5138
+lmo
+sta logt
+dld /5138
+bpl
+bru /5121
+dst /5138
+ldz
+sta logt
+dld /5120
+dsu /5138
+/5121: dno 8
+dst /5138
+lda 0
+bnz
+bru /5124
+dld /5138
+dno 27
+dst /5138
+lda 0
+bnz
+bru *+3
+maq
+bru /5127-1
+add /5123
+/5124: sta /5114
+lda logt
+bmi
+bru *+4
+dld /5120
+dsu /5138
+dst /5138
+lda /5138
+ejt !Page: 000077
+maq
+lda /5114
+srd 8
+dst /5107
+dld /5138
+srd 8
+lda /5107+1
+dst /5138
+/5127: dld /5112
+dst 0
+maq ,a
+maq ,a
+set nflpoint
+fad /5138
+bov
+bru *+1
+set nflpoint
+bru 1,1
+/5115: set fixpoint
+srd 1
+dst /5143
+dad /5144
+dst /5107
+fld /5143
+fsu /5144
+fdv /5107
+fst /5152
+maq ,a
+fmp /5152
+fst /5107
+dld /5107
+srd 2
+dad /5145
+dst /5107
+fld /5147
+fdv /5107
+fad /5146
+maq ,a
+fmp /5152
+fst /5107
+dld /5107
+dad /5148
+bru 1,3 !exit internal subroutine
+rem !last card  -  cd225d2.014
+nam !run-time,upper mem, service routines
+ejt !Page: 000078
+rem !format places the bcd reepresentation of 
+rem !   floating pont numbers in the output area
+format: ldx zero,1
+ldx zero,2
+forml: lda word,2
+srd 12
+sta temp,1
+lda zero
+sld 6
+sta temp+1,1
+lda zero
+sld 6
+sta temp+2,1
+inx 3,1
+inx 1,2
+bxl 5,2
+bru forml
+lda temp+13
+sla 2
+add temp+13
+sla 1
+add temp+14
+sta temp+15
+lda temp+8
+xaq
+lda bl
+sta temp+8
+xaq
+sub exn5
+bmi
+bru form27
+ldx exn6,1
+form26: lda temp+1,1
+ado
+sta temp+1,1
+sub exn10
+bmi
+bru form27
+lda zero
+sta temp+1,1
+lda 1
+sbo
+sta 1
+bnz
+bru form26
+ldo
+sta temp+2
+lda temp+12
+sub ex32
+bze
+bru form28
+lda temp+15
+ado
+ejt !Page: 000079
+sta temp+15
+bru form27
+form28: lda temp+15
+sbo
+sta temp+15
+form27: lda temp+15
+bnz
+bru form4
+form2: ldx exn6,1
+lda temp+1,1
+bnz
+bru form71
+lda bl
+sta temp+1,1
+lda 1
+sbo
+sta 1
+bru form2+1
+form11: ldx zero,1
+set pbk
+ldx exon,3
+form12: lda temp,1
+sla 6
+add temp+1,1
+sla 6
+add temp+2,1
+sta exc,3
+inx 3,1
+inx 1,3
+bxl 9,1
+bru form12
+bxh 13,1
+bru form13
+inx 2,1
+bru form12
+form13: lda temp+14
+sla 6
+add bl
+sla 6
+add bl
+sta exo,3
+inx 1,3
+stx exon,3
+lda yind
+add exn5
+form14: sta yind
+set pst
+ldx unfl2,2
+ldx unfl3,1
+bru 1,1
+form4: lda temp+12
+sub ex32
+bze
+bru form5
+ejt !Page: 000080
+lda temp+15
+sub exn7
+bpl
+bru form6
+ldx zero,1
+form20: lda temp+2,1
+sta temp+1,1
+lda temp+15
+sbo
+sta temp+15
+bze
+bru form21
+inx 1,1
+bru form20
+form21: lda per
+sta temp+2,1
+bru form2
+form6: lda temp+15
+sbo
+sta temp+15
+form8: lda temp+2
+sta temp+1
+lda per
+sta temp+2
+lda temp+15
+maq
+dvd exn10
+bze
+bru form7
+sta temp+13
+xaq
+sta temp+14
+bru form11
+form7: xaq
+sta temp+13
+lda bl
+sta temp+14
+bru form11
+form5: ldx exn7,1
+ldx zero,2
+form31: lda temp,1
+bnz
+bru form30
+inx 1,2
+lda 1
+sbo
+sta 1
+bru form31
+form30: lda 2
+sub temp+15
+bpl
+bru form9
+lda temp+15
+ado
+ejt !Page: 000081
+sta temp+15
+bru form8
+form9: ldx zero,1
+lda temp+2
+xaq
+form40: lda temp+3,1
+xaq
+sta temp+3,1
+inx 1,1
+bxl 5,1
+bru form40
+lda zero
+sta temp+2
+lda temp+15
+sbo
+sta temp+15
+bze
+bru form2
+bru form9
+form71: bxh 1,1
+bru form72
+lda zero
+sta temp+1
+lda per
+sta temp+2
+form72: ldx zero,1
+set pbk
+ldx exon,3
+form73: lda temp,1
+sla 6
+add temp+1,1
+sla 6
+add temp+2,1
+sta exo,3
+inx 3,1
+inx 1,3
+bxl 9,1
+bru form73
+stx exon,3
+lda yind
+add exn3
+bru form14
+rem !numeric output routine -- yunf
+rem !   the unfloat routine calls intchk, yint
+rem !   and bdca as subroutines.  The number to be
+rem !   output isin ax upon entry to yunf
+rem !   and is placed in bcd format in the out-
+rem !   put area.  formatting is automatically
+rem !  done by yint or by format for integers and
+rem !   floating point numbers respectively
+yunfu: stx unfl1,3
+stx unfl2,2
+fst word
+spb intchk,1
+ejt !Page: 000082
+bru yuf2
+bru yint !integer output routine
+yuf2: dld word !floating point output
+spb bdca,1
+lda word+4
+sla 1
+xaq
+lda word+3
+srd 12
+sla 12
+add unflt8
+sta word+3
+xaq
+sra 1
+sta word+4
+bru format
+rem !intchk checks to see whether the ax contains
+rem !an integer. if it does, an instructions is
+rem !skipped on exit. otherwise a normal exit
+rem !occurs. ax is unchanged
+intchk: stx ichxr,1
+ldx ichxr,1 !lower memory entry
+fst ichk1
+dld ichk1
+bmi
+bru 1,1 !integer cann have negative exponent
+sra 11
+cab exn30
+bru *+3
+bru *+2 !number larger than 2exp30 is not considered
+bru 1,1 !     an integer
+sta xr01 !load index register 1
+sta ichk1+1 !yint needs this information
+lda ichk1
+sld 0,1 !shift out integral part
+ext mexp !mast off exponent part
+bnz
+bru ichkex !not an integer
+xaq
+ext sign !mask off sign of mantissa
+bnz
+bru ichkex !not an integer
+ldx ichxr,1 !restore exit
+bru 2,1
+ichkex: ldx ichxr,1
+bru 1,1 !non-integer exit
+ejt !Page: 000083
+bdca: set nflpoint
+stx bdc61,1 ! save
+stx bdc62,2 !contents
+ldx bdc40,3 !set flag for neg exp to zero
+stx bdc63,3 !of index registers
+dst bdcarg
+maq ,a
+xaq
+bmi !sign of mantissa
+bru bdc1 !negative mantissa
+fad bdcarg !normalize
+lda bdc44 !space and decimal point
+bar ban,7
+bru *-1
+bar buf,7
+fld bdc40
+bdc2: fst bdcarg !normalized absolute value
+sta word !mantissa flag into word
+dld bdcarg !load absolute normalized number
+ bpl !test sign of exponent
+bru bdc3
+neg !absolute value of exponent
+ldx bdc48,3 !set flag for
+bdc3: stx word+3,3 !negative exponent
+sra 11 !isolate exponent
+maq
+mpy bdc42 !basse 10 exponent
+sta word+4 !p, tentative base ten exponent
+bdc9: ldx bdc40,2 !set counter
+bdc6: inx 2,2
+bev !examine binary estimate of
+bru bdc4 !base 10 exponent bit by bit
+bxl 1,3 !apply power of 10 to bdc arg
+bru bdc5 !divide on positive exponent
+maq ,a !multiply on negative
+fmp bdc30,2
+bdc4: sra 1 !is first round of
+bnz !scaling done
+bru bdc6 !not yet done
+fst bdcarg
+dld bdcarg
+add bdc54 !8v
+dsu bdc43 !8v-.8
+bmi
+bru bdc11 !v less than .1
+dld bdcarg !v gr or equal .1
+dsu bdc30
+bpl
+bru bdc11 !v gr or equal 1
+lda word+4 !v less than 1
+bze !is dec exp zero
+sta word+3 !if so,set its sign to zero
+dld bdcarg !isolate exponent of v
+ejt !Page: 000084
+sra 11 !for shift
+neg !to fix
+add bdc50 !point in
+ldx upbit,1
+set pbk
+sta bdc14,1 !mantissa
+lda bdcarg !restore mantissa
+sld 8 !delete exponent
+bdc14: dec 0 !###fix point in mantissa
+set pst
+bov !reset overflow
+bru *+1
+dad bdc56 !found
+bov
+bru bdcovf
+bdc17: spb bdc15+2,3 !gety first bcd digit
+add word !combine with sign and dec point
+sta word
+bdc16: ldx bdc40,2 !gets
+spb bdc15,3 !two
+sla 6 !words
+sta word+1,2 !of
+spb bdc15,3 !digits
+add word+1,2 !in
+sla 6 !bcd
+sta word+1,2 !representation
+spb bdc15,3 !and stores
+add word+1,2 !them
+sta word+1,2 !in
+inx 1,2 !word+1,word+2.
+bxl 2,2
+bru bdc16+1
+spb bdc15,3 !last digit of mantissa
+sla 12 !room for sign of exponent
+add bdc47 !add space
+sub word+3 !change space to minus if neg exp.
+sta word+3
+lda word+4 !decimal exponent
+maq
+dvd bdc46 !divide by ten to get leading
+add word+3 !digit
+sta word+3
+xaq !second
+sla 12 !digit
+add bdc49 !of
+sta word+4 !exponent
+ldx bdc61,1
+ldx bdc62,2
+ldx bdc63,3
+bru 1,1
+bdc1: fsu bdcarg !normalize and change sign
+lda bdc45 !minus and decimal point
+bru bdc2
+bdc5: fdv bdc30,2
+ejt !Page: 000085
+bru bdc4
+bdc11: ldo !increase base ten exponent
+add word+4 !by one
+sta word+4
+ldo !go to scale once more
+bru bdc9
+bdc15: dld bdcarg
+sld 4
+srd 1
+dst bdcarg
+srd 2
+dad bdcarg
+dst bdcarg
+maq !number
+sld 4 !in a
+bru 1,3
+bdcovf: lda word+3 !exponent flag
+bnz !negativbe
+lda bdc55 !if so,subtract
+ado !one from exponent
+add word+4 !if not,add one
+sta word+4
+bze !is new exponent zero
+sta word+3 !if so, set sign plus
+dld bdc57
+bru bdc17
+rem !last card cd225c2.008
+rem !yint is entered from yunf. it converts
+rem !   a floating point integer to bcd
+rem !   and places it in the output area.
+rem !   the number to be output is in the ax and
+rem !   in location word whtn the program is
+rem !   entered.  the exponent of this number if
+rem !   contained right justified in location
+rem !   ichk1+1
+yint: ldx exn1,3
+bar bmi,7 !if number to be output is negative
+bru yint2
+lda bl
+sta temp
+yint3: lda exn30
+sub ichk1+1 !subtract exponent
+sta xtem
+ldx xtem,1
+dld word
+ext mexp
+srd 0,1
+bru yint4
+yint2: cax !$$$$$
+fsu word !form absolute value
+fst word
+lda ex32 !minus sign
+sta temp
+bru yint3
+ejt !Page: 000086
+rem !to output an integer up to 30 bits long
+rem !   enter at yint4 with the integer right
+rem !   justified in a and q, index register 3
+rem !   set to 1 and the octal for the
+rem !   sign [20,40, or 60] stored right
+rem !   justified in location temp.
+rem !this routine works in any index group and
+rem !   leaves the reult in the output region.
+yint4: dvd tent
+dst word !save quotient and remainder
+bze
+bru yint5
+ldx zero,2
+maq
+yint6: ldx exn1,1
+yint7: lda zero
+dvd tent,1
+bze
+bru yint8
+sta temp,3
+stx xtem,2
+lda xtem
+bev
+inx 1,2
+inx 1,3
+yint9: inx 1,1
+bxl 6,1
+bru yint7
+bxh 2,2
+bru yint10
+lda word+1 !remainder from division
+maq
+inx 2,2
+bru yint6
+yint5: ldx exn2,2
+bru yint6
+yint8: sta temp,3
+stx xtem,2
+lda xtem
+bod
+inx 1,3
+bru yint9
+yint10: bxh 2,3
+bru *+4
+lda zero !supply zero if all zero
+sta temp,3
+inx 1,3
+lda bl
+sta temp,3
+sta temp+1,3
+inx 2,3
+sta temp,3
+sta temp+1,3
+stx temp+15,3
+ejt !Page: 000087
+ldx zero,1
+set pbk
+ldx exon,3
+yint12: lda temp,1
+sla 6
+add temp+1,1
+sla 6
+add temp+2,1
+sta exo,3
+lda yind
+ado
+sta yind
+inx 3,1
+inx 1,3
+stx xtem,1
+lda xtem
+sub temp+15
+bmi
+bru yint12
+stx exon,3
+set pst
+ldx unfl2,2
+ldx unfl3,1
+bru 1,1
+ejt !Page: 000088
+rem !inconv  converts numbers received in a
+rem ! call for input to normalized float point.
+rem ! use is made of the compile time routine
+rem ! flt.  this is justified because all
+rem ! working storage for flt is in an area of
+rem ! the output region which will beunused
+rem ! at the time of a call for input.
+rem !inconv places one character per word in
+rem ! flota and the number of characters accum-
+rem ! ulated in fltn, then flt is called.
+rem !xr10 and 11 must be initialized by the
+rem ! call for input [incall].  they are both
+rem ! set to zero. should inconv be entered
+rem ! with xr10 set negative  this indicates
+rem ! that too few numbers have been supplied.
+rem ! an error exit occurs which instructs the
+rem ! user to retype his input and control
+rem ! is returned to the beginning of the
+rem ! coding for this statement.
+rem !index group 1 is used by inconv.
+inconv: lda xr10 !error check
+bmi
+bru inper
+sxg 1
+ldx zero,2 !xr12 couints no. of char accumulated.
+inc0: lda exo,1 !pick up a word
+bxl 2,0 !check for last characte of word and
+bru inc01 !cump word ponter and reset char ponter
+ldx zero,0
+inx 1,1
+bru inc02
+inc01: sra 6 !shift out a character
+bxl 1,0
+sra 6
+inx 1,0 !point of onfluence
+inc02: ext m3 !save right-most character
+cab n31 !check for carriage return
+bru inc1 !branch to stick character in
+bru inc2 !branch to take care of carriage return
+cab bl !delete blanks
+bru inc1
+bru inc0
+cab n59 !check for comma
+bru inper ! no lega char between blank and comma
+bru inc3 ! take care of comma
+cab fill !dlete fill characters
+bru inper
+bru inc0
+inc1: bxh 16,2 !check for too many characters
+bru inper
+sta flta,2
+inx 1,2
+bru inc0
+ejt !Page: 000089
+inc2: lmo !carriage returns sets error flag
+sta xr10
+inc3: lda xr12 !both comma and carriage return terminate
+sbo ! accululation of characters and send the
+sta fltn ! routine to convert.
+bmi inper !there must be at least one character
+sxg 0
+spb flt,3 !go convert, result is left in ax,
+bru inper-1 ! error return
+bru 1,1 !return to object program.
+sxg 1
+inper: ldz !set flag to skip[ outputting of lilne no.
+lqa
+lda n13 !message number
+ldx inloc,1 !set up return from rmess
+ldx zero,2 !set up to ge to low mem
+bru rmess,2
+inret: sxg 0 !return here
+ldx wai,1 !get return to beginning of statement
+bru 3,1
+ejt !Page: 000090
+rem !ytst contaols the reading of data
+ytstup: ldx b,1 !set up return
+lda dpnt !check to see if working on last record
+cab dend
+bru *+2
+bru ytlas
+lda datai
+add two !check to see if buffer exhauster
+sta datai
+cab o200
+bru 1,1 !ok to read
+ldz !reset buffer ponter
+sta datai
+sxg 1
+spb dchek,1 !check last disk op
+lda drec !last read record becomes current record
+sta dpnt
+cab dend !if last read record is last record donot rea
+bru *+2
+bru ytskp
+add two !bump record number in plist
+sta drec
+add sign
+sta plist+2
+lda plist+1 !flip buffers
+ext o400
+add o200
+sta plist+1
+lda n5 !go red
+sxg 4
+spb 8192,1
+dec plist
+set pst
+ytskp: sxg 0
+bxh 256,2 !if pointer has gone high reset
+ldx zero,2
+bru 1,1 !now ready to read
+ytlas: lda datai !go slowly in last buffer load
+add two
+sta datai
+cab datan
+bru 1,1 !still not finished
+lmo !set *out of data in xxx* and terminate
+maq
+ldx zero,1
+bru rmess,1
+nam !compile time error messages
+ejt !Page: 000091

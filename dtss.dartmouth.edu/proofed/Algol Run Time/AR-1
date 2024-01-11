@@ -1,0 +1,1679 @@
+ejt !Page: 5
+loc 20000
+oct 0 !exit to 225 executive
+algol: bru start !executive transfers control to this location
+bru clean !transfer
+oct 0 !spare
+alf alg
+oct -2
+oct 1400
+oct 3775400
+oct 31000
+clean: ldz !cleanup routine just does a terminal exit
+bru 8192
+comcal: spb 0,1
+dec 0
+oct -0
+dec 6144
+oct 20000
+
+
+runclk: eqo 4000
+opoint: eqo 4001 !pointer to first word available in output buffer
+length: eqo 4003 !number of 64 word blocks in source program
+
+rem !all exits from the compiler go to location
+rem !2000 with a set equal to
+rem !    0 for a terminal exit
+rem !    1 for intermediate output
+rem !    2 for an input call
+rem !    3 for an overlay call
+rem !    4 for an overlay delete
+nam !initialization
+ejt !Page: 6
+loc 20020
+start: ldz
+sta dkflg1
+lda erflag
+bmi error !there are some
+lda nuob !cxheck for undefineds
+bnz er42
+sta $ind
+sxg 0
+lda dkflg2 !check if disk operation needed
+bnz
+spb setup,1
+dld randm1
+dst randm2
+rin
+lda trpflg !run in trapmode
+bnz
+bru *+8
+lda trapt
+sta trapl
+z10 trapt+1
+z13 trapl+1
+lda xtag
+sta txr2
+set trpmode
+ldx zero,1
+bru prog,1
+
+yoicks: ldz
+sta junk+1
+spb char,3
+cab o7777
+bru y1
+bru *+1
+srd 3 !shift digit into q
+lda junk+1
+ext ymask
+sub gr1
+chs
+srd 0
+sld 3
+sta junk+1
+bru char !get next character
+y1: cab clist+11 !colon
+bru *+2
+bru ycolon
+cab clist+16 !plus
+bru *+2
+bru yplus
+cab clist+59 !comma
+bru *+2
+bru ycomma
+ejt !Page: 7
+cab clist+13
+bru *+2
+bru ysemi
+bru char
+ycolon: lda junk+1
+sta junk
+bru yoicks
+yplus: lda junk
+ado
+sta junk
+bru yoicks
+ycomma: ldx junk,3
+lda junk+1
+sta 0,3
+bru yoicks
+ysemi: sxg 0
+ldx temp*,1
+bru 2,1 !return to object program
+nam !miscellaneous service routines
+ejt !Page: 8
+rem !runout  is the terminal exit when the object
+rem !program has run out of data. endjob dumps
+rem !whatever remains in the output buffer and
+runout: spb $tring,1 !print out of data message
+dec 5
+oct 377225
+alf nd
+alf of
+alf dat
+alf a
+endjb1: ldx veclo,2 !fudge uclock for writedisk
+lda 2, 2
+sta dblock
+lda dkflg1 !check for disk usage
+bnz
+spb wrtdsk,1
+endjob: sxg 0
+set pbk
+ldx opoint,3
+lda crlf !code for carriage return and line feed
+sta outbuf,3
+inx 1,3
+lda bleom
+sta outbuf,3
+stx opoint,3
+ldz
+bru 0 !terminal exit
+nam !character input and analysis routines
+ejt !Page: 9
+rem !input processes the source program by
+rem !picking off algol symbols, identifiers,
+rem !and constants.  identifiers and constants
+rem !are handled by subroutines of input,
+rem !while alolg symbols cause control to be
+rem !transferred to route.
+input: sxg 2 !set index group 2 for character input
+
+
+rem !char picks off the next legitimate
+rem !character from the source program.  fill
+rem !characters are ignored, carriage returns
+rem !generate an editing process.  the eom
+rem !mark causes an exit to the wrapup
+rem !routine.  char uses index group 2
+rem !as follows.
+rem !  xr20 - working storage for editing
+rem !  xr21 - word index in source program
+rem !  xr22 - character index in word
+rem 1  xr23 - exit set according to mode of input
+
+char: stx temp,3 !save exit
+bxh 2,2 !test character counter
+bru newwrd !read new word of source program
+lda ch2,2 !pick up character in word already read
+inx 1,2 !increment character counter
+codech: ext chmask !trim to last six bits
+sta xr23 !xr23 = index for lookup in clist
+lda clist,3 !internal code for character
+ldx temp,3 !restore exit
+cab spch !check for special characters and fudges
+bru *+3 !it is one . . . check further
+bru char+1
+bru 1,3 !exit according to mode of input
+cab minid-1 !check for carriage return
+bru char+1 !wasnt--must be fill--skip it
+bru *+2 !carriage return--check exit
+bru char+1 !as before
+bxh inloop+1,3 !check entrance to char
+bru 1,3 !was not inloop, go back
+bru finish !was inloop, leave
+
+newwrd: inx 1,1 !increment word pointer
+lda outbuf-1,1 !pick up new word
+sta ch3 !store last character
+sra 6
+sta ch2 !store ssecond character
+sra 6 !get first character
+ldx zero,2 !reset character pointer
+bru codech !return
+
+rem !run-time input routines
+rem !run-time input calls are compiled at callin a
+rem !s an spb to adisub followed by the number of
+ejt !Page: 10
+rem !evlaues to be read.  the input routine goes t
+rem !o the exec for the input call, does the bcd t
+rem !o binary conversion, stores the values in asc
+rem !ending order at the top of the output buffer.
+rem !and supplies pointers for rd2sub.
+rem !index registers are used as follows
+rem !xr01--linkages to the program and exec
+rem !xr21--word ponter for character pickupu rout
+rem !ine
+rem !xr22--character pointer
+rem !xr23--input mode and returns--for constant
+rem !conversion routines.
+rem !xr31--ponter for store of converted values
+rem !xr32--save of xr31 for error recovery
+
+rdtsub: lda 1,1 !pick up number of variables
+sla 1 !double it
+stx temp*,1
+sta save*
+sub o5700
+neg
+sta xr31
+sta xr32
+sub two
+sta dblock
+sta xr01
+lda save*
+add two
+maq
+dst 0,1
+spb $tring,1 !in goes the question mark
+dec 1
+oct 356055
+lda two !code for input call
+spb 0,1 !arg bd to exec
+sxg 2 !prepare pointers
+ldx zero,1 !zero word pointer
+ldx two,2
+ldz
+maq
+dst junk !clear junk
+
+inloop: spb char,3 !pick up character
+cab o7777
+bru *+3
+bru *+2
+bru undef !is digit
+cab decid !check for decimal point
+bru *+2
+bru condec !is decimal point
+cab expid !check for exponent symbol
+bru *+2
+bru conexp !is exponent symbol
+cab minid !check for minus sign
+ejt !Page: 11
+bru *+2
+bru conmin !is minus sign
+cab clist+59 !check for comma
+bru *+2
+bru finish
+cab minid-1 !check for carriage return
+bru *+2
+bru finish
+ext chmask !none of the above, so store
+sta temp
+dld junk
+sld 6
+dst junk
+lda temp
+ory junk+1
+bru inloop !and go back for more
+
+finish: sta temp !end of constant, look at it
+dld junk
+bze endin !no stuff
+xaq !pick up lst theree dcharacters
+ext lbit !mask off bit 1
+cab drgid !check for yoicks
+bru *+2
+bru yoicks
+cab true
+bru *+2
+bru ktrue !constant is true
+cab false !check for false
+bru *+2
+bru kfalse
+endin: lda temp !here to terminate constant
+cab minid-1 !check for carriage return
+bru inloop-3 !if not look for more
+bru *+2 !otherwise return
+bru inloop-3
+sxg 3
+
+rem !dcnein terminates the input call
+
+donein: bxl trpsv,1
+bru er62l !not enough input
+sxg 0 !exit
+spb $crt,1
+ldx temp*,1
+bru 2,1
+
+
+undef: ext chmask
+maq
+dst const !set first character of const
+ldx modc1,3 !set constant mode 1
+ldz !clear some things
+ejt !Page: 12
+sta dctr !count of digits after decimal point
+sta dinc !decimal point flag
+sta exp !exponent
+sta bigc
+sta type !type of constant
+ldo
+sta sgnexp !sign is plus
+bru char !and leave
+rem !the mantissa of constants.  the accumulated
+rem !value of the constant is stored in const.
+rem !bigc contains ten times the overflow from the
+rem !a register of const and is used to facilitate
+rem !computation.  dinc is 0 if no decimal point
+rem !has been read, 1 otherwise.  dctr counts the
+rem !number of digits after the point.
+
+const1: cab o10000
+bru con2 !character not a digit
+bru *+1
+ext chmask !trim to digit
+xaq
+lda const+1
+xaq !q = low order bits of const.  a = digit
+mpy ten
+add bigc !add [high order bits of const] * 10
+dst constx !store current value of constant
+bze
+bru con1 !constant less than 2esp19
+cab o3777
+bru *+3
+bru *+2
+bru char !too many digits in constant .- ignore them
+maq
+mpy ten !for value of bigc to add after next digit
+xaq
+sta bigc
+con1: dld constx
+dst const
+lda dctr
+add dinc
+sta dctr !dctr=dctr+dinc = no. of places after point
+bru char
+con2: bze
+bru char
+cab expid !check for exponent sign
+bru *+2
+bru con3
+cab decid !check for decimal point
+bru outcon
+bru *+2
+bru outcon
+lda dinc
+bnz
+bru er60 !two decimal points
+ejt !Page: 13
+ldo
+sta dinc !dinc=1
+lda rbit
+sta type !set type to real
+bru char
+
+rem !conexp  is called when the first symbol of
+rem !the constant is the exponent symbol
+
+conexp: sxg 2
+ldz
+sta dinc
+sta dctr
+sta exp
+ldo
+sta sgnexp
+maq
+dst const
+con3: ldx modc2,3 !set input mode to const2
+lda rbit
+sta type !set type to real
+bru input
+
+
+rem !const2  checks the next character after the
+rem !exponent character *ten* [typed as$] for
+rem !the sign of the exponent.
+
+const2: cab o10000
+bru con5 !character not a digit
+bru *+1
+ext chmask !trim to digit
+sta exp
+con4: ldx modc3,3 !set input mode to const3
+bru char
+con5: bze
+bru char !character = space
+cab plusid !check for sign of exponent
+bru *+2
+bru con4
+cab minid
+bru er60 !illegal input format
+bru *+2
+bru er60 !illegal input format
+lmo
+sta sgnexp !set sgnexp = -1
+bru con4
+
+
+rem !const3  is the input mode which builds up
+rem !the exponent of the constant.
+
+const3: cab o10000
+bru con6 !character not a digit
+ejt !Page: 14
+bru *+1
+ext chmask !trim to digit
+xaq
+lda exp
+xaq
+mpy ten
+xaq
+cab d77
+bru *+3
+bru er60 !exponent of constant too large
+bru er60 !exponent of constant too large
+sta exp !store current value of exponent
+bru char
+con6: bnz
+bru outcon !character not a space
+bru char
+
+rem !condec  is called when the first character
+rem !in the constant is the decimal pont
+
+condec: ldz
+maq
+dst const
+sta dctr
+sta exp
+sta bigc
+ldo
+sta sgnexp
+sta dinc
+lda modc1
+sta xr23
+lda rbit
+sta type
+bru input
+rem !outcojn  decides what to do with the constant
+
+outcon: cab clist+59 !check for valid termina character --comma
+bru *+2 !is not   check more
+bru *+5 !is--ok
+cab minid-1 !carriage return
+bru er60 !no good
+bru *+2 !ok
+bru er60
+sta temp !save terminatung symbol
+sxg 4
+spb convrt,1 !bcd-binary
+rem !routcn stores processed input values at the t
+rem !op of the output buffer using xr31 , which wa
+rem !s set at rdtsub, as a pointer
+routcn: sxg 3
+lda symb !check for sing
+fst const
+cab minid
+bru *+6
+ejt !Page: 15
+bru *+2
+bru *+4
+cax
+fsu const
+fst const
+dld const !store constant
+dst 0,1
+inx 2,1
+ldz
+sta symb !clear symb
+bxh trpsv+1,1 !check for   too much input
+bru er61
+sxg 2
+bru endin
+conmin: sta symb
+bru inloop
+
+rem !convrt   converts the information built up
+rem !by the input routines into a floating pont
+rem !constant.
+rem !called by outcon
+
+convrt: lda sgnexp
+bpl
+bru cvt1
+lda exp
+neg
+sta exp
+cvt1: lda dinc !check for decimal point
+bze
+bru cvt2 !no decimal point
+lda exp !adjust exponent by number of decimal places
+sub dctr
+sta exp
+cvt2: dld const !check for more than 30 bits in constant
+ext o3777
+bze
+bru cvt3 !less than 30 bits
+nor 8 !normalize for more than 30 bits
+lda 0 !number of shifts needed
+sla 11 !put number of shifts into exponent position
+sta binexp !set binary exponent
+lda xr00
+sbo
+sta xr43 !number of shifts less one
+lda const
+srd 0,3 !shift all but one place
+dad dblone
+srd 1 !completes rounding of oversize constnat
+dst const
+ext o3777 !check to see if more shift needed
+bnz
+lda o2000 !force for special case of constant all 1 bits
+add binexp !add binary exponent computed by shift
+ejt !Page: 16
+cvt3: add const !add constant to exponent
+add d30b8 !add a binary exponent of 30
+sta const
+lda exp
+sta expflg !save signed exponent
+bmi
+neg
+sta exp !make exponent positive
+fld const
+fad fzero
+ext cmask !trim to last three bits of exponent
+sla 1 !double it
+sta xr43
+spb cvtmul,2
+lda exp
+ext seven !trim off last three bits
+ldx d14,3 !set xr43 to location of 10esp7 in table
+sra 2 !Get twice exponent mod 8
+cvt7: sra 1
+sta exp
+bze
+bru 1,1 !conversion is completed
+inx 2,3 !advance counter by one power of ten
+bev
+bru cvt7 !skip this power of 10
+spb cvtmul,2 !adjust by power of 10
+lda exp
+bru cvt7
+cvtmul: lda expflg
+bmi
+bru *+4 !negative exponent
+maq ,a
+fmp ctable,3 !overflow may occur here
+bru 1,2
+cqx
+fdv ctable,3 !underflow may occur here
+bru 1,2
+
+ktrue: ldz
+bru *+2
+kfalse: lmo
+maq !clear a register
+sta symb !set symb equal to a space
+xaq !logical value back to a
+dst const
+lda bbit !boolean type bit
+sta type
+sxg 3
+bru conmin-9 !process constant
+ejt !Page: 17
+nam !error messages
+rem !print          at line no. xxxxx
+erat: ldx retend,1
+*erat: stx erx2,1
+spb $tring,1
+dec 4
+alf at
+alf lin
+alf e n
+alf o. 
+outlin: sxg 0
+ldx one,3
+lda o60
+sta pout
+lda lineno
+maq
+spb *+2,1
+bru *+3
+stx prx1,1
+bru pr6
+ldo
+sta crump
+sxg 4
+ldx erx2,1
+bru 1,1
+rem !print          near line no. xxxxx
+ernear: ldx retend,1
+stx erx2,1
+spb $tring,1
+dec 5
+alf nea
+alf r l
+alf ine
+alf  no
+alf .
+bru outlin
+rem !******************************************
+
+rem !output external identifier
+rem !xr2 points to etable
+
+outid: set pbk
+ldx opoint,3
+lda etable,2
+sta outbuf,3
+inx 1,3
+inx 1,2
+bpl
+bru *-5
+stx opoint,3
+set pst
+bru 1,1
+rem !******************************************
+
+rem !error--suspect missing
+ejt !Page: 18
+ermiss: stx erx1,1 !save exit from ermiss
+spb $tring,1
+dec 8
+oct 372551
+alf ror
+alf --s
+alf usp
+alf ect
+alf  mi
+alf ssi
+alf ng
+ldx erx1,1
+bru $tring
+rem !******************************************
+rem !illegal
+erill: stx erx1,1
+spb $tring,1
+dec 3
+oct 373143
+alf leg
+alf al
+ldx erx1,1
+bru $tring
+ejt !Page: 19
+error: ldz
+sta xr43 !initialize pointer to error flags
+sxg 4 !I ahd to know which, and this seemed nice
+lda objlo !calculate ending address
+sbo !add to eraval
+sub eraval
+ldx xtag,2
+sto *+2,2 !see why it had to be negated
+erloop: spb $crt,1 !make things print nice
+bxh 0,3 !test for all done
+bru endjob !you done expect me to execute the stuff
+dld prog,3 !pick up error code and line number
+inx 2,3 !increment pointer
+add xtag
+sta xr42 !set up indexed branch to error message
+laq
+sta lineno !set line no
+bru *,2 !boy will this scare my readers before 2nd lob
+bru er1 !storage exhauster
+bru er2 !identifier too long
+bru er3 !too many symbols
+bru er4 !expression too complicated
+bru er5 !adjacent expressions
+bru er6 !illegal specification
+bru er7 !too decimal ponts in constant
+bru er8 !constants only
+bru er9 !exponent of constant too large
+bru er10 !too many constants
+bru er11 !illegal symbol after expression
+bru er12 !illegal symbol sequence
+bru er13 !two nots
+bru er14 !two relations together
+bru er15 !mixed boolean and arithmetic
+bru er16 !illegal variable
+bru er17 !array not subscripted
+bru er18 !illegal left part variable
+bru er19 !illegal subscript
+bru er20 !error--suspect missing close brakett
+bru er21 !number of subscripts does not agree
+bru er22 !error suspect missing then
+bru er23 !non-boolean expression following if
+bru er24 !error--suspect missing semicolon
+bru er25 !messy consitional
+bru er26 !illegal label
+bru er27 !error-suspect missing close paren
+bru er28 !data block name missing
+bru er29 !error in procedure call
+bru er30 !trouble
+bru er31 !missing data
+bru er32 !declaration should follow begin
+bru er33 !illegal declaration
+bru er34 !symbol already defined
+bru er35 !illegal occurence of begin
+bru er36 !bound pair error--too many colons
+ejt !Page: 20
+bru er37 !no colon in bound pair
+bru er38 !ub less than lb
+bru er39 !illegal occurence of declaration
+bru er40 !illegal assignment to formal parameter
+bru er41 !not in
+bru er42 !undefined label in program
+bru er43 !spurious quote
+bru er44 !program incomplte
+bru er45 !error in for statement
+bru er46 !error in power subroutine
+bru er47 !error in ln subroutine
+bru er48 !error in sqrt subroutine
+bru er49 !subscript out of bounds
+bru er50 !integer too large
+bru er51 !overflow
+bru er52 !illegal call by value
+bru er53 !wrong number of parameters
+bru er54 !parameter types do not match
+bru er55 !illegal entry to for statement
+bru er56 !illegal procedure declaration
+ejt !Page: 21
+rem !******************************************
+rem !storage exhausted
+rem !called by adj1, abloop, wrapup, declar
+er1: spb $tring,1
+dec 13
+oct 374751
+alf ogr
+alf am 
+alf too
+alf  lo
+alf ng-
+alf -st
+alf ora
+alf ge 
+alf exh
+alf aus
+alf ted
+oct 776077
+ldx goend,1
+bru *erat
+rem !******************************************
+rem !identifier too long
+rem !called by nrid1, out21
+er2: spb $tring,1
+dec 7
+oct 373124
+alf ent
+alf ifi
+alf er 
+alf too
+alf  lo
+alf ng
+bru erat
+rem !******************************************
+rem !too many symbols
+rem !called by notini, blist1, chain3, decpno,
+rem !  defnez, block
+er3: spb $tring,1
+dec 7
+oct 376270
+alf mbo
+alf l t
+alf abl
+alf e f
+alf ill
+alf ed
+bru erat
+rem !******************************************
+rem !expression too complex
+rem !called by ncsto1, stosc, tieup, barray, ncp4
+rem !  block
+er4: spb $tring,1
+dec 10
+oct 372567
+ejt !Page: 22
+alf pre
+alf ssi
+alf on 
+alf too
+alf  co
+alf mpl
+alf ica
+alf ted
+oct 776077
+bru erat
+rem !******************************************
+rem !missing operand or delimiter
+rem !called by vcheck, bpar1, ncf2
+er5: spb $tring,1
+dec 10
+oct 374431
+alf ssi
+alf ng
+alf ope
+alf ran
+alf d o
+alf r d
+alf eli
+alf mit
+alf er
+bru erat
+rem !******************************************
+rem !illegal specification
+rem !called by spec, dbegin, bparen, bbrack
+er6: spb erill,1
+dec 5
+alf spe
+alf cif
+alf ica
+alf tio
+alf n
+bru erat
+rem !******************************************
+rem !illegal constant format
+rem !called by con2, con5
+er7a: spb er7+3,1 !constant nas 2 decimal ponts
+bru input
+er7: sta symb !illegal character following $
+spb *+2,1
+bru outcon+1
+stx erx3,1
+spb erill,1
+dec 6
+alf con
+alf sta
+alf nt
+alf for
+alf mat
+alf    
+ejt !Page: 23
+ldx xr01,0
+bru erat
+ldx xr20,1
+ldx erx3,2
+bru 1,2
+rem !******************************************
+rem !constants only
+rem !called at letter
+er8: spb $tring,1
+dec 11
+oct 374546
+alf n-c
+alf ons
+alf tan
+alf t a
+alf s s
+alf ubs
+alf cri
+alf pt
+alf bou
+alf nd
+bru erat
+rem !******************************************
+rem !exponent of constant too large
+rem !called by const3
+er9: spb $tring,1
+dec 11
+oct 372567
+alf pon
+alf ent
+alf  of
+alf  co
+alf nst
+alf ant
+alf  to
+alf o l
+alf arg
+alf e
+bru erat
+rem !******************************************
+rem !too many constants
+rem !called by newcon
+er10: spb $tring,1
+dec 7
+oct 376346
+alf o m
+alf any
+alf  co
+alf nst
+alf ant
+alf s
+bru erat
+rem !******************************************
+rem !illegal symbol after expression
+ejt !Page: 24
+rem !called by prcexp
+er11: spb erill,1
+dec 10
+alf sym
+alf bol
+alf  fo
+alf llo
+alf win
+alf g e
+alf xpr
+alf ess
+alf ion
+oct 776077
+bru erat
+rem !******************************************
+rem !illegal symbol sequence
+rem !called by pmchk,kswtch,ncp2,define
+er12: spb erill,1
+dec 6
+alf sym
+alf bol
+alf  se
+alf que
+alf nce
+oct 776077
+bru ernear
+rem !******************************************
+rem !two nots
+rem !called by subfte
+er13: spb $tring,1
+dec 4
+oct 376367 !!should be 376366
+alf o n
+alf ots
+oct 776077
+bru ernear
+rem !******************************************
+rem !two relations together
+rem !called by rte1
+er14: spb $tring,1
+dec 8
+oct 376366
+alf o r
+alf ela
+alf tio
+alf ns 
+alf tog
+alf eth
+alf er
+bru ernear
+rem !******************************************
+rem !mixed boolean and arithmetic types
+rem !called by load1, tarith, kaop, kbop, assi,
+rem !  kwhile, kstep, kelse3, delse5, kunt12, test
+ejt !Page: 25
+er15: spb $tring,1
+dec 17
+oct 374431
+alf xed
+alf  bo
+alf ole
+alf an 
+alf and
+alf  ar
+alf ith
+alf met
+alf ic 
+alf typ
+alf es
+alf in
+alf exp
+alf res
+alf sio
+alf n
+bru ernear
+rem !******************************************
+rem !illegal variable
+rem !called by fetch, fechp
+er16: spb erill,1
+dec 3
+alf var
+alf iab
+alf le
+bru ernear
+rem !******************************************
+rem !array not subscripted
+rem !called by fetch
+er17: spb $tring,1
+dec 8
+oct 372151
+alf ray
+alf  no
+alf t s
+alf ubs
+alf cri
+alf pte
+alf d
+bru ernear
+rem !******************************************
+rem !illegal left part bariable
+rem !called by fpcr, assi
+er18: spb erill,1
+dec 7
+alf lef
+alf t p
+alf art
+alf  va
+alf ria
+alf ble
+ejt !Page: 26
+oct 776077
+bru ernear
+rem !******************************************
+rem !illegal subscript
+rem !called by ksubsc, subsc1, kswtch
+er19: spb erill,1
+dec 4
+alf sub
+alf scr
+alf ipt
+oct 776077
+bru ernear
+rem !******************************************
+rem !error--suspect missing close bracket
+rem !called by subint, subsc1
+er20: spb ermiss,1
+dec 1
+oct 766077
+bru ernear
+rem !******************************************
+rem !incorrect number of subscripts
+rem !called by musub, fpsub, fpsub2
+er21: spb $tring,1
+dec 11
+oct 373145
+alf cor
+alf rec
+alf t n
+alf umb
+alf er 
+alf of 
+alf sub
+alf scr
+alf ipt
+alf s
+bru ernear
+rem !******************************************
+rem !error--suspect missing *then*
+rem !called by kif
+er22: spb ermiss,1
+dec 3
+oct 346330
+oct 254534
+oct 776077
+bru ernear
+rem !******************************************
+rem !non-boolean expression following *if*
+rem !called by kif
+er23: spb $tring,1
+dec 12
+oct 374546
+alf n-b
+alf ool
+alf ean
+ejt !Page: 27
+alf  ex
+alf pre
+alf ssi
+alf on 
+alf aft
+alf er
+oct 343126
+oct 347760
+bru ernear
+rem !******************************************
+rem !suspect missing semicolon
+rem !called by knnt3,kcmnt
+er24: spb ermiss,1
+dec 1
+oct 156077
+bru erat
+rem !******************************************
+rem !messy conmditional
+rem !called by kthen, kthen2, kelse1, bif
+er25: spb $tring,1
+dec 7
+oct 374425
+alf ssy
+alf  co
+alf ndi
+alf tio
+alf nal
+oct 776077
+bru ernear
+rem !******************************************
+rem !illegal label
+rem !called by goto
+er26: spb erill,1
+dec 2
+alf lab
+alf el
+bru ernear
+rem !******************************************
+rem !error--suspect missing close paren
+rem !called by kinp1, kprnt1, fct2, kparen
+er27: spb ermiss,1
+dec 1
+oct 746077
+bru ernear
+rem !******************************************
+rem !data block name missing
+rem !called by kinp2, kinp3
+er28: spb $tring,1
+dec 9
+oct 372421
+alf ta
+alf blo
+alf ck 
+alf nam§
+ejt !Page: 28
+alf e m
+alf iss
+alf ing
+oct 776077
+bru erat
+rem !******************************************
+rem !messy procedure call
+rem !called by kfct, ncpsto, pcall4
+er29: spb $tring,1
+dec 9
+oct 372551
+alf ror
+alf  in
+alf  pr
+alf oce
+alf dur
+alf e c
+alf all
+oct 776077
+bru ernear
+rem !******************************************
+rem !trouble
+rem !called by bif5, kthen, bror, swtch1, dproc3,
+rem !  decpro, kbegin
+er30: spb $tring,1
+dec 3
+oct 376351
+alf oub
+alf le
+bru ernear
+rem !******************************************
+rem !missing data
+rem !called by kdata, kinp2
+er31: spb $tring,1
+dec 5
+oct 374431
+alf ssi
+alf ng
+alf dat
+oct 0216077
+bru erat
+rem !******************************************
+rem !declaration not following begin
+rem !called by bproc2, dreal1, da2
+er32: spb $tring,1
+dec 11
+oct 372425
+alf cla
+alf rat
+alf ion
+alf  no
+alf t f
+alf oll
+alf owi
+ejt !Page: 29
+alf ng
+alf beg
+alf in
+bru erat
+rem !******************************************
+rem !illegal declaration
+rem !called by bproc1, dproc, bparen, spcsym,
+rem !  kparam, whosym, indec, iswtch, dreal,
+rem !  ownchk, kdata, karr1, kab, alfp2, bswtch,
+rem !  dsw1, dbegin
+er33: spb erill,1
+dec 4
+alf dec
+alf lar
+alf ati
+alf on
+bru ernear
+rem !******************************************
+rem !symbol already defined
+rem !called by unb6, unb4, unb3, blist, blist1
+er34a: lda bs,2
+sta xr41
+er34: dld xmove
+mov 0
+sxg 0
+ldx erx1,2
+lda itable,2
+ext etmask
+sta xr02
+spb outid,1
+spb $tring,1
+dec 5
+oct 602425
+alf fin
+alf ed
+alf twi
+alf ce
+bru erat
+rem !******************************************
+rem !illegal occurrence of -begin-
+rem !called by dbegin
+er35: spb erill,1
+dec 8
+alf occ
+alf urr
+alf enc
+alf e o
+oct 466034
+alf beg
+oct 314534
+oct 776077
+bru erat
+rem !******************************************
+rem !bound pair error--too many colons
+ejt !Page: 30
+rem !called by bcolon
+er36: spb $tring,1
+dec 15
+oct 372246
+alf und
+alf  pa
+alf ir
+alf err
+alf or-
+alf -to
+alf o m
+alf any
+oct 601313
+oct 131313
+oct 131313
+oct 131313
+oct 131313
+oct 126260
+bru erat
+rem !******************************************
+rem !no colon in bound pair
+rem !called by kab
+er37: spb $tring,1
+dec 7
+oct 374546
+oct 601360
+alf in
+alf bou
+alf nd
+alf pai
+alf r
+bru erat
+rem !******************************************
+rem !ub less than lb
+rem !called by kab
+er38: spb $tring,1
+dec 27
+oct 372646
+oct 516351
+oct 214512
+alf s a
+alf rra
+alf ys
+alf run
+alf  ba
+alf ckw
+alf ard
+alf s--
+alf not
+alf  al
+alf gol
+oct 126237
+alf upp
+alf er
+ejt !Page: 31
+alf bou
+alf nd
+alf les
+alf s t
+alf han
+alf  lo
+alf wer
+alf  bo
+alf und
+oct 776077
+bru erat
+rem !******************************************
+rem !illegal occurrence of declarator
+rem !called by bswtch, da2, down
+er39: spb erill,1
+dec 9
+alf occ
+alf urr
+alf enc
+alf e o
+alf f d
+alf ecl
+alf ara
+alf tor
+oct 776077
+bru erat
+rem !******************************************
+rem !illegal assignment to formatl parameter
+er40: spb erill,1
+dec 11
+alf ass
+alf ign
+alf men
+alf t t
+alf o f
+alf orm
+alf al
+alf par
+alf ame
+alf ter
+oct 776077
+bru erline
+rem !******************************************
+rem !not in
+rem !called by msymb
+er41: dld xmove
+mov 0
+spb $tring,1
+dec 3
+oct 374546
+alf t i
+alf n
+bru ernear
+rem !******************************************
+ejt !Page: 32
+rem !undefined label in program
+rem !called by wrapup
+er42: sxg 0
+spb $tring,1
+dec 4
+alf und
+alf efi
+alf ned
+oct 0133772
+ulab: ldx zero,2
+ldx xr02,3
+lda itable,3 !pointer word in itable
+srd 10
+sta junk+1 !next entry in class
+ldz
+sld 10
+sta xr42 !etable pointer
+lda itable+1,3 !identifier [internal] word
+bmi
+bru ulab2 !negative -- goto next
+sta junk
+sub lbit
+bmi
+bru ulab2 !not label -- goto next
+ext dmask
+bnz
+bru ulab2 !defined -- goto next
+sxg 4
+lda junk
+ext o17777
+cab dtype
+bru ulab3 !label
+bru ulab4 !data
+spb $tring,1
+dec 3
+alf swi
+alf tch
+alf    
+bru ulab5
+ulab3: spb $tring,1
+dec 3
+alf lab
+alf el
+alf    
+bru ulab5
+ulab4: spb $tring,1
+dec 3
+alf dat
+alf a
+alf    
+ulab5: spb outid,1 !output the undefined identifier
+spb $crt,1
+sxg 0
+ulab2: ldx junk+1,3
+ejt !Page: 33
+bxh 1,3
+bru ulab+2
+inx 2,2
+bxl 64,2
+bru ulab+1
+bru endjob
+rem !******************************************
+rem !spurious quote
+rem !called by strbl, full, bquote
+er43: spb $tring,1
+dec 4
+oct 376247
+alf uri
+alf ous
+oct 603460
+bru erat
+rem !******************************************
+rem !program incomplete
+rem !called by cfudge
+er44: spb $tring,1
+dec 7
+oct 374751
+alf ogr
+alf am
+alf inc
+alf omp
+alf let
+alf e
+bru endjob
+rem !******************************************
+rem !error in for statement
+rem !called by bfor, kfor2, kwhile, kstep, kunt6
+er45: spb $tring,1
+dec 8
+oct 372551
+alf ror
+alf  in
+alf  fo
+alf r s
+alf tat
+alf eme
+alf nt
+bru ernear
+
+rem !******************************************
+rem !error in ppower subroutine
+rem !called by basemi, basezr
+er46: fst atemp
+stx erx1,1
+xaq ,a
+spb $crt,1
+spb $print,1
+spb $tring,1
+dec 1
+ejt !Page: 34
+oct 605760
+fld atemp
+spb $print,1
+rem !******************************************
+erline: ldx goend,1
+*erlin: stx erx1,1
+stx erx2,2
+spb $tring,1
+dec 4
+alf  at
+alf  li
+alf ne
+alf no.
+lda 1,3
+maq
+stx prx3,3
+ldx one,3
+ldx o60,1
+stx pout,1
+spb *+2,1
+bru *+3
+stx prx1,1
+bru pr6
+lda crump
+ado
+sta crump
+sub five
+bze
+bru endjob
+ldx erx1,1
+ldx erx2,2
+bru 1,1
+rem !******************************************
+
+er47: stx /5112,1 !log of zero or negative number
+spb erill,1
+dec 5
+alf arg
+alf ume
+alf nt
+alf to
+alf ln
+spb *erlin,1
+ldx /5112,1
+bru 1,1
+rem !******************************************
+
+
+er48: spb $tring,1 !error in sqrt subroutine
+dec 3
+oct 376250
+alf rt 
+alf of
+spb $print,1
+bru erline
+ejt !Page: 35
+rem !******************************************
+
+er49: spb $tring,1 !subscript out of bounds
+dec 8
+oct 376264
+alf bsc
+alf rip
+alf t o
+alf ut
+alf of
+alf bou
+alf nds
+bru erline
+rem !******************************************
+rem !integer too large
+rem !called by unflot
+er50: spb $tring,1
+dec 6
+oct 373145
+alf teg
+alf er
+alf too
+alf  la
+alf rge
+bru endjob
+rem !******************************************
+rem !overflow
+er51: spb $tring,1
+dec 3
+oct 374665
+alf erf
+alf low
+spb *erlin,1
+fld maxpos
+ldx /6134,1
+bru 1,1
+rem !******************************************
+rem !illegal call by value
+rem !called by specs, specp, spec1, specd, value
+er52: spb erill,1
+dec 5
+alf cal
+alf l b
+alf y v
+alf alu
+alf e
+bru erat
+rem !******************************************
+rem !incorrect number of parameters
+er53: ldx junk,3
+spb $tring,1
+dec 11
+oct 373145
+alf cor
+ejt !Page: 36
+alf rec
+alf t n
+alf umb
+alf er
+alf of
+alf par
+alf ame
+alf ter
+alf s
+bru erline
+rem !******************************************
+rem !mismatched parameters
+er54: ldx junk,3
+spb $tring,1
+dec 10
+oct 374721
+alf ram
+alf ete
+alf r t
+alf ype
+alf s d
+alf o n
+alf ot 
+alf mat
+alf ch
+bru erline
+rem !******************************************
+rem !illegal entry to for statement
+er55: spb erill,1
+dec 8
+alf ent
+alf ry 
+alf to 
+alf for
+alf  st
+alf ate
+alf men
+alf t  
+bru erline
+rem !******************************************
+rem !illegal procedure declaration
+er56: spb erill,1
+dec 8
+oct 374751
+alf oce
+alf dur
+alf e d
+alf ecl
+alf ara
+alf tio
+alf n.
+bru erat
+rem !******************************************
+rem !illegal asggment to exp
+ejt !Page: 37
+er57: stx /5112,1
+spb erill,1 !illegal
+dec 5
+alf arg
+alf ume
+alf nt
+alf to
+alf exp
+spb *erlin,1
+ldx /5112,1
+bru 1,1
+rem !******************************************
+rem !incorrect input format
+rem !called by routcn, er7
+er60: spb $tring,1
+dec 10
+oct 373145
+alf cor
+alf rec
+alf t i
+alf npu
+alf t f
+alf orm
+oct 216337
+alf ret
+oct 517055
+sxg 0 !return for another try
+ldx temp*,1
+bru 0,1
+rem !******************************************
+rem !too much input
+rem !called by routcn
+er61: spb $tring,1
+dec 5
+oct 376346
+alf o m
+alf uch
+alf  in
+alf put
+oct 377777
+sxg 0
+spb $crt,1 !make nice output
+ldx temp*,1
+bru 2,1
+rem !******************************************
+rem !not enough input
+rem !called by donein
+er62: sxg 4
+spb $tring,1
+dec 10
+oct 604546
+alf t e
+alf nou
+alf gh
+ejt !Page: 38
+alf inp
+alf ut.
+alf  ad
+alf d m
+alf ore
+oct 377755
+lda two !get more input
+spb 0,1
+sxg 2
+ldx zero,1
+ldx modc1,3
+ldx two,2
+bru inloop
+er60l: equ er60
+er61l: equ er61
+er62l: equ er62
+nam !disk read-write
+ejt !Page: 39

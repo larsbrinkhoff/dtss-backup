@@ -1,0 +1,700 @@
+!!Transcription by jsm February 2002
+!!Page 7
+	ttl	 	!Dartmouth Time-Sharing System 235 Executive
+	stl 		!Initial Loader
+	loc 34000  	!Date of latest reassembly goes here
+#date: 	bss 0
+	oct 1032	!Update August 26, 1965 [RPL]
+
+
+,     Dartmouth College Time-Sharing System
+,                              235 Executive
+
+,     Richard P. Lacey [67]  April 1965 -
+,     John S. McGeachie [65]  April 1964 - April 65
+
+,     Phase IV
+,       For 44 teletype disk allocation of July 13,
+,       1965.
+
+,     16K Loader - will load 16K GAP cards into
+,     upper or lower memory. Accepts single or
+,     multiple origin cards and octal corrections.
+,     Octal corrections may be single or multiple
+,     origin. Scan terminated by single character
+,     field.
+,     Author Charles G. Moore [65]
+
+
+	loc 3000
+#r: 	bss 42		!read-in area
+#rw: 	bss 41 		!analyze area
+octacc:	bss 1 		!working storage for octal corrections
+octadd: 	bss 1
+#wdct: 	oct 2017777	!mask to leave address and sign bit
+#R2: 	dec #rw  	!card move constants
+	dec -40
+#mc: 	dec 2		!memory clear constants
+	dec -1533
+#mc1: 	dec #last+1
+	dec -12286
+#addr: 	oct 1760000	!address correction mask
+#8k: 	dec 8192
+octc: 	oct 3776000 	!octal correction mask
+#load1: 	ldz 		!check switch 19 for memory clear
+	sta #last		!clear to contents of switches
+	sta 1
+	ldx 8k,2		!get upper bit
+	lda #date,2	!and save date
+	sta #x3sv
+	dld #mc
+	mov 1
+	rcs		!Check if clear later part
+	sta #sflag	!Set systems flag
+	bod
+!!Page 8
+	bru #load	!No
+	dld #mc1
+	mov #last
+	ldx #8k,1	!Restore at earliest
+	lda #x3sv
+	sta #date,1	!opportunity
+#load:	rcb #r		!Read first card - fill buffer
+	hcr		!but is loaded normally
+	ldz		!Make sure we start in lower bank
+	sta #x3sv
+#r1: 	dld #r2		!Normal entrance for card read
+	bcn
+	bru *-1		!Wait for reader ready
+	mov #r		!and then move from read buffer
+	sta #rw+40	!Set zero to end of card image
+	ldx #zf,1	!Set up for scan
+	ldx #x3sv,3	!Restore X3
+	lda #rw,1	!RW is working area - get control word
+	bze
+	bru #oct
+	ext #wdct
+	bze
+	bru #t
+	rcb #r
+	hcr
+	sra 13
+#ze: 	sta 0
+	lda #rw,1
+	ext #addr	!Leave address and sign bit
+	bmi		!If upper 8k add index bit
+#dart2:	bru #dart1	!First Dartmouth-style card found
+	sto 3		!Otherwise, GAL convention
+#ret: 	inx 1,1		!is return for each word in string
+	lda #rw,1
+	sta 0,3		!Put it away
+	add #rw-1,1	!totaling for checksum
+	bov
+	ado
+	sta #rw,1	!Save present checksum
+	inx -1,0		!Bump down word counter
+	inx 1,3		!and bump up address counter - put away
+	bxh 1,0		!and check for end of string
+	bru #ret		!If not, put away another word
+	sub #rw+1,1
+	bze		!Check checkword
+	bru *+3
+	lda #rrr		!If not, set up for error halt
+	bru *		!Recover is backspace A-I start
+	inx 2,1
+	lda #rw,1
+	ext #wdct
+!!Page 9
+	bnz
+	bru #ze-1
+#rrr: 	bru #r1		!Go get another card
+#t:	lda #rw,1	!Get transfer address
+	bmi
+#dart3:	ldx #8k,3	!If first Dartmouth-style, do not panic
+	sto 3		!Else GAL
+	lda #sflag	!Save systems flag
+	sta sload
+	bru 0,3		!exit
+	add #8k
+#dart1:	lda *-1		!Set instructions for Dartmouth style
+	sta #dart2
+	sta #dart3	!Reset transfer
+	lda octe+1
+	sta #dart2+1
+	sta #dart3+1
+	bru #ze+1	!Get back
+
+,     Free-form octal corrections -
+
+#oct:	 rcb #r
+	hcr
+	ldx #ze,2
+	stx #x3sv,3	!Save index register 3
+	bru octe
+octb: 	sra 10
+	ext octc		!Get left half of word, and dump rest
+	nor 16
+	sla 1
+	lda octacc
+	bov		!If overflow, there is a word
+	bru octd
+	bxl 2,3
+	bru octe
+	bxl 3,3
+	bru #r1		!Single character field - get out
+	bxh 7,3
+	bru octf
+	sta octadd	!Or address
+octe:	ldz
+	sta 3
+	lqa
+	bru octa-1
+octd:	sld 3
+	ext 0
+	bno
+	chs
+	sta octacc
+octa:	inx 1,3
+	bxh 40,1
+!!Page 10
+	bru #r1		!Card finished
+	lda octc
+	lqa
+	lda #rw,1
+	bxl 1,2
+	spb octb,2
+	inx 1,1
+	ldx #ze,2
+	bru octb+1
+octf:	ldx octadd,3
+	sta 0,3
+	inx 1,3
+	stx octadd,3
+	bru octf
+#x3sv:	bss 1		!X 3 temporary save
+#sflag:	bss 1		!Systems temporary flag
+#last:	equ *
+	tcd #load1
+	stl		!Disk loader for systems and executive
+	ejt
+!!Page 11
+,     Load checks switch 7 - if down, then no
+,     billing is desired, so KBILL and IREC are
+,     inhibited.
+,     - if up, billing is desired.
+
+
+,     The SRES sequence performs a series of
+,     checks to insure that
+,     1] the SPR switch is set to the all position
+,     2] the disk is clear
+,         and the 6k mod is working
+,     3] the console switches are reset
+,     4] the AAU is ready
+,     If any of the above conditions fail to
+,     be true, the console typewriter will type
+,     a message to the operator and continue to
+,     do so until the condition has been corrected.
+
+,     5] SRES also checks the batch flag. If on,
+,     it crumps the switch check and sets up an
+,     entry into the batch overlay in the task
+,     list.
+,     6] It reads in the summary record from the
+,     disk and resets it to zero if the bootstrap was
+,     typed on TTY 1.
+
+	loc 1000
+load:	bss 0
+	ton
+	sxg 0		!Set zero in case switch bad
+	ldx 8k,3
+	lmo		!Set disk flag 2 on
+	sta dkflg2
+	ldz		!and set address for relinquish
+	sta relad,3
+	rcs		!Check billing switch
+	ext $bmsk	!billing mask - oct 3767777
+	sta $bf		!and set in flag
+	bnz1
+	bru *+4		!Billing not set
+	spb $ertyp,2	!Billing flag on
+	dec bon
+	bru sres
+	spb $ertyp,2	!Billing flag off
+	dec boff
+	lda $nob		!Inhibit KBILL and IREC
+	sta kbill,3
+	sta irec,3
+
+sres:	sxg 0
+!!Page 12
+	set pbk		!and prevent interrupts
+	lda sign
+	sta pmbx0
+	ton
+	ldz		!Now find out what group we are in
+	sta xr01
+	sta z1
+	spb *+1,1
+	lda xr01
+	bnz
+	bru saok		!Ok, neither API not Trap
+	lda z1		!API...
+	bnz
+	set pst		!yes, exit
+	set pbk
+	set trpmode
+	set ntpmode
+	ldx zero,2	!and exit
+	bru *+1,2
+saok:	sxg 5		!continue
+	ldx 8k,3		!Set upper 8k bit on
+	ldx zero,1	!Test SPB switch
+	spb *+1,1
+	bxh 1,1		!If 1 is higher than 1, then SPB switch is
+	bru *+6		!set to all, else it is at 0
+	sxg 0		!set 0
+	ldx 8k,3		!Upper 8k bit on
+	spb $ertyp,2
+	dec rspb		!Reset SPB switch to all
+	bru sres		!Go back and test again
+	bar bar,7		!See how AAU is
+	bru *+4
+	spb $ertyp,2
+	dec raau		!Loafing
+	bru sres		!and check again
+	spb $dkstst,2	!Get disk
+	lda loadf		!Check for card load
+	bmi		!If load flag on,
+	bru loadc	!then punt message this time
+
+,     If batch bootstrap do not bring in the summary
+	lda sbak		!See if batch
+	bpl
+	bru *+12
+	lda sbak+1		!See if have a front
+	sta io1		!minus if a front card was around
+	dld .sres.		!Batch - so set up return
+	dst iplst,3
+	dld bsums1		!Get summary back
+	mov bsums
+	lac			!Compute batch running time
+!!Page 13
+	sub otim1t,3
+	add fkbat
+	sta fkbat
+	bru skex		!and get out
+
+,     procede with normal bootstrap
+	sel 0
+	prf ,0		!Position for efficiency record
+	oct 402
+	bcs brn,0
+	bru *-1
+	sel 0
+	rrd 1,0
+!! original code shows 'fclock' in operand field
+	dec fclock		!!Verify value is 0000600
+	bcs brn,0		!Wait
+	bru *-1
+	bcs ber,0
+	bru *-11
+	lda sign		!Reset special mailbox to normal status
+	sta pmbx0
+	lda fclock		!Check starting time
+	bnz			!If not zero, then regular bootstrap
+	bru soak2		!so skip initialization
+	dld fclear		!If zero, clear summary area
+	mov fclock
+	sta acrun
+	sta acswap
+	sta acdisk		!Initialize accumulated time counts
+	sta acbat
+	lac			!Get starting time
+	sta fclock
+	sta acstrt
+	spb $time,2
+,     Pick up starting times for short-run summary
+	dst fstim
+	dst astim2		!Long run summary
+	sel 0			!Rewrite on disk
+	prf ,0
+	oct 402
+	bcs brn,0
+	bru *-1
+	sel 0
+	wrf 1,0
+	dec fclock
+	bcs brn,0
+	bru *-1
+	bcs ber,0
+	bru *-11
+soak2:ldx zero,1		!Reset flag
+	lda f4,1		!and transmit summary so far to accumulator
+	sta fkedit,1
+!!Page 14
+	inx 1,1		!Step count
+	bxl fkrat-f3,1	!and test if done
+	bru *-4		!No
+	lda ohzyf,3
+	sta bzyf
+
+,     Further checks to make sure system is working
+!Check for switch 1 down
+	ldz
+	bcs
+	bze
+	bru *+3
+	spb $ertyp,2
+	dec res		!Reset switches
+	lda exec2+1,3	!Check 6K mod on disk
+	sub 1025		!Left in from bootstrap
+	bnz
+	Bru *+4		!OK
+	spb $ertyp,2
+	dec sdsd
+	bru load1		!Try again
+	lda $bf		!Billing flag
+	bnz
+	bru stime		!Not on, crump
+sboot:spb $twait,2	!Wait for tape
+	bru *-1		!Try again
+	sel 1			!If OK, write
+	wtb boot,0		!Bootstrap message
+	dec 30		!Different length
+	spb $twait,2	!Check again
+	bru sboot		!Try again
+	bru stime		!Get around buffer
+stime:spb $time,2
+	sta d1		!Store it in done statement
+	laq
+	sta d1+1
+	spb $ertyp,2
+	dec d
+	lda tmm		!Temporary malfunction
+	sta mbx1
+	lda kermes		!Error message
+	sta mbx0
+
+skex: spb $relin,2	!Get rid of the disk
+	ldx zero,2
+	lda pmbx0		!Wait for d-30 to answer
+	bmi
+	bru *+5
+	inx 1,2		!See how long he takes
+	ldx zero,1		!Waste time
+	bxl 8190,2
+	bru *-6		!2/3 of a second
+!!Page 15
+	kon			!Go on with load
+	oct 2506014		!Priority request
+	bru wait,3		!Get out
+
+
+$relin: bru relin,3
+$time:  bru time,3
+
+
+
+$twait:lda dtime		!Get inteval
+	bcs btr,1		!If tape ready
+	bru 2,2		!return OK
+	maq			!Save count
+	rcs			!Check switches
+	sra 19-7		!and check switch 7
+	bod
+	bru stime		!If down, punt
+	laq			!Else keep counting
+	sbo			!else count
+	bpl
+	bru $twait+1	!Still OK
+	stx $temp,2		!Save register
+	spb $ertyp,2	!and type message
+	dec $tpnr		!Tape not ready
+	ldx $temp,2		!Get register
+	bru 1,2		!and bad return
+
+
+
+$ertyp:ldx zero, 0	!Initialize coutner
+	lda 1,2		!and get address of message
+	sta temp
+	ldx temp,1
+	ton			!Turn on typewriter
+	bnr			!and check if ready
+	bru $type1
+	inx 1,0		!Count
+	bxl 8190,0
+	bru *-4		!and keep trying
+	bru 2,2		!Exit if not ready
+
+$type1:lda 0,1		!Get word
+	ext sign		!and get rid of sign
+	srd 12		!Get most in Q
+	inx 1,1		!and step pointer
+	ldx zero,0		!Reset counter
+
+$type:stx temp,0		!Save character pointer
+	bnn			!and wait for ready
+	bru *-1
+!!Page 16
+	inx 1,0		!Step counter
+	bxl 100,0		!Stupid typewriter - IBM equipment
+	bru *-4		!Make sure ready 50 times before using
+	ldx temp,0		!Restore character pointer
+	cab peom		!and check for end of message
+	bru *+2		!no
+	bru 2,2		!Exit
+	san 6			!else type
+	typ
+	inx 1,0		!Step character counter
+	bxh 3,0		!One word typed...
+	bru $type1		!yes
+	sld 6			!Get next character
+	bru $type		!and type it
+
+
+$tpnr:bss 0			!Tape controller not ready.
+	oct 373772		!Tape controller not ready
+	alf tap		!Make sure handler 0 has a scratch tape
+	alf e c		!and is on remote.  Then clear controller
+	alf ont
+	alf rol
+	alf ler
+	alf & no
+	alf t r
+	alf ead
+	oct 701537
+	oct 754421
+	alf ke& 
+	alf sur
+	alf e h
+	alf and
+	alf ler
+	alf & 0& 
+	alf has
+	alf & a& 
+	alf scr
+	alf atc
+	alf h t
+	alf ape
+	alf & an
+	alf d i
+	alf s o
+	alf n	r
+	alf emo
+	alf te.
+	oct 376330
+	alf en
+	alf cle
+	alf ar& 
+	alf con
+!!page 17
+	alf tro
+	alf lle
+	oct 513355
+
+,     Messages
+
+res:	bss 0			!Reset switches
+	oct 374124
+	alf set
+	alf & sw
+	alf itc
+	alf hes
+	oct 557777
+
+rspb:	bss 0			!Set SPB switch to all
+	oct 376225
+	alf t s
+	alf pb& 
+	alf swi
+	alf tch
+	alf & to
+	alf & al
+	oct 435577
+
+boot:	bss 0
+	oct 2606060
+	oct 557755		!Special pattern
+	alf boo
+	alf tst
+	alf rap
+	alf & no
+	oct 333535
+	alf & & & 
+	alf & & & 
+	alf & & & 
+	alf ---
+	alf & & & 
+
+d:	bss 0			!End load   Date and time.
+	oct 372545
+	alf d l
+	alf oad
+	alf & & & 
+date:	alf & & & 
+	alf & & & 
+	alf & & & 
+	alf & & & 
+	alf & & & 
+	alf & & & 
+	alf & & t
+	alf ime
+d1:	alf & & & 
+!!Page 18
+	alf & & & 
+	alf & ho
+	alf urs
+	oct 373755
+	oct 2606060
+
+bon:	bss 0			!Billing flag set to bill
+	oct 372231
+	alf lli
+	alf ng& 
+	alf fla
+	alf g s
+	alf et& 
+	alf to& 
+	alf bil
+	oct 433355
+
+boff:	bss 0			!Flag set for no bill
+	oct 372643
+	alf ag
+	alf set
+	alf & fo
+	alf r n
+	alf o b
+	alf ill
+	oct 335577
+
+sdsd:	bss 0
+	alf som
+	alf e f
+	alf ool
+	alf & ch
+	alf ang
+	alf ed& 
+	alf the
+	alf & 6K
+	alf & mo
+	alf d s
+	alf wit
+	oct 233037
+	oct 557777
+
+raau:	bss 0			!AAU loafing
+	alf aau
+	alf & lo
+	alf afi
+	alf ng.
+	oct 373755
+	ejt			!Page 19
+!!Page 19
+,     The main body of the executive is first put
+,     on the disk.  The 16K loader is then
+,     re-entered to read in the executive
+,     overlays, each of which is put on the disk
+,     in turn.  The last overlay is followed by two
+,     transfer cards, the second of which transfers
+,     to the SRES routine which types out the
+,     DONE message to signify loading has been
+,     completed.
+
+
+loadc:ldz			!Reset load flag
+	sta loadf
+	lda sload		!Check system flag
+	bpl			!If not on,
+	bru lself		!Load executive
+	dld .set.		!Set up linkage
+	dst iplst,3		!Set in list
+	set pst		!Just in case
+	oct 2506014		!SET PRQ
+	bru wait,3		!and scram
+
+set:	dld unset		!delete entry
+	dst iplst,3
+	inx sys,2		!and set for system
+	bru perget,3
+
+,     write bootstrap on the disk
+lself:bcs brn,0		!Put loader on the disk first
+	bru *-1
+	sel 0
+	prf			!Position
+	oct 2476		!Disk 0, Position 5, Record 31
+	bcs brn,0
+	bru *-1
+	sel 0
+	wrf 1,0
+	dec load1		!Loader
+	bcs brn,0
+	bru *-1
+	bcs ber,0
+	BRU *-11
+	lda mask6		!Convert loader to write executive on disk
+	sra 3			!Place a 37 in highorder bits
+	ory load2
+	ory load3
+	lda zero
+	sta in		!Zero out some critical locations
+	sta mbx0
+	lda $bldv		!Pick up branch and overwrite bootstrap
+	sta ltrans
+!!Page 20
+	bru load1
+
+
+loadov: ldz			!Clear overlay areas
+	sta execove,3
+	dld ovclr
+	mov execov
+	sxg 0			!Set zero for loader
+	bru #load		!and reenter it
+
+
+lovwrt: bss 0
+	sxg 5
+	ldx 8k,3
+	ldx pernum+1,2	!Pick up overlay address pointer
+	lda 2,2
+	bmi			!If negative, error, so crump works
+	bru *
+	sta relad,3		!Set for relinquish
+	sta *+5		!Put away in position location
+	bcs brn,0		!Wait for disk ready
+	bru *-1
+	sel 0
+	prf ,0		!Position
+	oct 0
+	bcs brn,0
+	bru *-1
+	sel 0
+	wrd 8,0		!Write
+	dec execov
+	bcs brn,0		!Wait
+	bru *-1
+	bcs ber,0		!Errors...
+	Bru *-11		!If so, rewrite
+	bru loadov		!Continue picking up overlays
+
+
+$dktst:ldx zero,0		!Set counter
+	ldo			!and ask for disk
+	sta pmbx0
+	lda dtime
+	bcs brr,0		!Check if ready
+	bru 1,2		!If so, exit
+	sbo			!Decrement
+	bpl			!and wait again
+	bru *-4
+	inx 1,0		!Increment
+	bxl 3,0
+	bru $dktst+1	!and try again
+	stx $temp,2		!Save entry
+	spb $ertyp,2	!and type a nasty mesage
+!!Page 21

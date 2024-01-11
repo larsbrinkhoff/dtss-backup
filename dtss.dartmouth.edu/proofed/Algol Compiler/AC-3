@@ -1,0 +1,2011 @@
+ejt !Page: 80
+sto 0,3 !set bru around procedure body
+dproc4: sbo
+sta 40,3 !set loc, indicating exit !!?????
+lda sc+1,1
+sta tslo !reset temporary storage block
+add d37
+sta tslf
+inx 1,1 !erase pointers from sc
+lda *bru*
+spb write,2 !store exit from procedure
+bru repeat
+dproc5: lda sc,1
+sub two
+sta xr13
+lda o200
+ext sc-2,1
+bnz !real or integer procedure
+lda *fld*
+add xr13 !form load of value of procedure
+ado
+spb write,2
+lda pavail
+add two
+sto 0,3 !store bru around procedure body
+inx 2,3 !get index in step
+bru dproc4
+ejt !Page: 81
+rem !bparen  determines whether a left parenthesis
+rem !belongs to a procedure or not, and if so,
+rem !what kind of procedure it is.
+
+bparen: ldx whami,2
+bru *+1,2
+bru bpar1 !check for adjacent expressions in body
+bru er33 !illegal declaration
+bru er6 !illegal specification
+spb decpro,3 !declare procedure and set up block
+lda procid
+sta symb !set symb = procedure left paren
+bru stosc
+bpar1: lda prev2
+bmi
+bru er5 !adjacent expresions
+bru setgr4
+rem 
+ejt !Page: 82
+rem 
+rem !decpro  is called at the end of the formal
+rem !  parameter list [even if empty]
+rem !  result . . .
+rem !     sc    procedure-id
+rem !     sc+1  bsc
+rem !     sc+2  pavail
+rem !     sc+3  tslo
+
+decpro: stx temp,3
+spb blist,3 !list procedure name if necessary
+ldx xr41,3
+lda atype
+add pavail
+sbo
+sta itable+1,3 !define procedure identifier
+sxg 1
+lda xr01
+sbo
+sta xr01 !erase identifier from nc
+bnz
+bru er30
+spb block,3 !create a block for body of procedure
+lda sc,1
+sub ctag
+sta sc,1 !undo damage done by block
+ldx bsc,2
+lmo !set flag so vavail is not reset on exit
+sta bs+1,2 !      from procedure
+lda gr1
+ext atype
+bnz
+bru decp1 !not a function type procedure
+ldx xr41,3 !create internal variable for function
+bxh bslf,2
+bru er3 !bs full
+inx 2,2
+stx bsc,2
+lda itable+1,3
+sta bs+1,2 !save external significance
+lda xr41
+sta bs,2 !set pointer to itable
+lda atype
+ext wmask
+ext gr1 !trim to type of procedure
+add pavail
+sub d41
+sta itable+1,3 !create dummy variable
+decp1: ldx temp,3
+bru 1,3 !exit
+nam !procedures - special calls
+ejt !Page: 83
+rem !kinput compiles input procedure calls
+
+kinput: lda noel
+bmi
+bru kinp2+2 !call for restore
+ado
+sta noel
+cab two
+bru kinp2 !get name of data block to initiate call
+bru *+1
+lda dskflg !check for disk operation
+bnz rwfil
+
+lda rd2spb !subroutine reentry
+spb write,2
+spb loadun,2 !dummy load variable to get piece of data
+ldx pavail,2 !load index of location to fudge
+lda 0,2 !get fummied load instruction
+ext wmask !trim off load instruciton
+add *dst* !form store instruction
+sta 0,2 !put back in program
+kinp1: lda noel
+bmi
+bru restr !call for restore
+lda xr01
+sbo
+sta xr01 !erase name of variable from nc
+lda symb
+cab comid
+bru *+2
+bru input !more parameters to come
+cab rpid
+bru er27
+bru *+2
+bru er27
+kinp11: sxg 2
+lmo
+sta term !comment loop symbol-only flag
+lda temp* !check for run time input call
+bze *+6 !no
+lda noel !yes
+sbo
+ldx temp*,3
+sta 0,3 !set variable count
+ldz
+sta temp* !remove run time input indication
+sta dskflg !clear flag for disk operation
+spb kmntlp,3
+sta prev
+sta symb
+ldz
+sta term !reset symbol-only flag
+ejt !Page: 84
+ldx modun,3
+sxg 1
+bru repeat
+
+rem !here to treat data block name
+
+kinp2: ldo
+sta noel !set flag ato indicate first parameter is read
+ldx xr01,2
+lda nc,2 !identifier for first argument
+ext amask !call for runtime input
+sub o17777
+bze callin ! yes
+lda nc,2 !no
+ext o17777 !trim to type
+bpl
+bru kinp3 !not procedure or formal parameter
+chs
+sub abit
+bnz
+bru er28 !not specified or not formal parameter
+lda nc,2
+ext amask
+sta xr13 !avoid confusiom with strings
+lda 0,3
+ext o17777
+cab dtype
+bru er31
+bru *+2
+bru er31
+lda xr13
+ado
+add *spb2*
+spb write,2
+bru kinp1
+kinp3: cab filtyp
+bru *+2
+bru filop !data block name is a file
+lda rdaspb
+spb write,2
+ldz
+spb write,2 !reserve location for name of data block
+lda dtype
+spb chain,2 !fill in name of block or add to chain
+bru er28 !illegal data name
+bru kinp1
+
+rem !restr compiles calls for the restore function
+restr: sxg 0 !     get this thing straightened out
+lda nc,1
+bmi rstfp
+ext o17777 !check for restore of data file
+ejt !Page: 85
+sub filtyp
+bze resfil
+lda pavail
+sbo
+sta xr02
+lda rstspb
+sta 0,2
+bru kinp1+3
+rstfp: lda ldadbl !restore a formal parameter
+spb write,2
+lda pavail
+add three
+add *sta*
+spb write,2
+lda rstspb
+spb write,2
+spb write,2 !reserve location for block name
+bru kinp1+3
+
+resfil: lda rsfspb
+spb write,2
+bru kinp1+3
+
+filop: ldo !set disk use flag for runtime
+sta dkflg2
+lda dskflg
+bmi *+4
+ldo
+sta dskflg
+lda rddspb
+spb write,2
+spb write,2
+bru kinp1
+wrtop: ldx pavail,2
+lda wmask
+ory 0,2 !fudge to fld for boolean data
+lda wt2spb !disk write
+spb write,2
+bru kinp1
+
+rwfil: bmi !check for write
+bru kprnt6+1 !fudge some things
+lda rdbspb !read
+spb write,2 !write the nice thing
+bru kinp1-6
+
+rem !callin compiles run-time input calls
+
+callin: lda rdtspb
+spb write,2
+spb write,2 !reserve space for variable count
+lda pavail
+ejt !Page: 86
+sta temp*   !save pointer to word count location
+bru kinp1
+rem !kprint  compiles output procedure calls
+
+kprint: lda tst
+ext o17777
+sub *sta*
+bze
+spb stotst,3
+lda prflag
+bnz
+bru kprnt5 !generate packed output
+lda tabspb !spb to tab routine
+kprnt6: spb write,2
+ldx xr01,2
+lda nc,2
+bpl *+5
+add lbit
+bmi prfp
+spb loadun,2 !generate load of variable to print
+lda dskflg !check for disk write
+bmi wrtop
+lda type
+cab bbit
+bru riprt !print a real or integer number
+lda bprspb !spb to boolean print routine
+kprnt1: spb write,2
+lda xr01
+sbo
+sta xr01 !erase name of variable from nc
+lda symb
+cab comid
+bru *+2
+bru kprnt3 !more parameters to come
+cab rpid
+bru er27
+bru *+2
+bru er27
+kprnt2: lda crtspb
+spb write,2 !store carriage return call
+bru kinp11
+kprnt3: ldz
+sta prflag !reset prflag for a tab
+bru input
+kprnt5: lda shospb !spb to packed output routine
+bru kprnt6
+riprt: lda prtspb
+bru kprnt1
+prfp: ext amask
+sta xr12
+lda 0,2
+ejt !Page: 87
+ext o17777
+cab sttype
+bru er16 !not string type
+bru *+2
+bru er16 !not string type
+lda *spb2*
+add xr12
+ado !form address of think link
+bru kprnt1 !write spb to output string
+
+rem !bquote  compiles an output string
+rem !into an spb to the string routine,
+rem !a word containing the string length,
+rem !and the string end-filled with spaces
+
+
+bquote: lda declo
+bnz er43 !nexted in something strange
+sta type !clear type, which is a flag here
+lda dm2
+sta declo
+lda sc,1
+cab outpid !left-parend id for output call
+bru *+2
+bru bout
+maq !save left paren id while
+lda lnkflg !we check if we are
+bnz stracc-1 !compiling a chain call
+laq !we are not--continue on
+ext o7700
+cab procid !parameter-list left-paren for user procedure
+bru er43 !spurious quote
+bru *+2 !let procedure to the tabbing
+bru er43 !spurious quote
+lda sttype !string type
+sta type
+bru *+9
+bout: lda prflag
+bnz
+bru *+3
+lda tabspb !spb to tab routine
+bru *+2
+lda shospb !spb to packed outptu routine
+spb write,2
+ldz
+sta prflag
+lda strspb
+spb write,2 !write spb to string output routine
+lda *bbpl*+1
+spb write,2 !write dummy error branch
+ldx pavail,3 !save location of dummy branch
+ldx zero,0 !word counter
+ejt !Page: 88
+stracc: ldx zero,2 !character counter
+stx junk,2 !character accumulator
+sxg 2
+spb str2,3
+cab o34 !is it a quote
+bru *+2
+bru endstr !yes, end of string
+lnkret: bss 0
+add junk
+sta junk
+sxg 1
+inx 1,2 !character counter
+bxh 3,2
+bru gotwrd !word is full
+lda junk
+sla 6
+sta junk
+bru str1
+gotwrd: lda junk
+spb write,2 !write accumulated word
+inx 1,0 !increment word counter
+bru stracc
+endstr: sxg 1
+bxl 1,2 !no characters in current word
+bru emptst
+lda junk !fill word with spaces
+spfill: add o60 !fill out strings
+inx 1,2
+bxh 3,2
+bru full
+sla 6
+bru spfill
+full: spb write,2 !write last word
+inx 1,0 !increase word count
+lda lnkflg
+bnz
+bru klink2
+lda xr10 !load word count
+sta 0,3 !over-write dummy brance
+sxg 2
+spb str2,3
+cab o73 !comma
+bru strbl
+bru strcom !yes
+cab o74 !right paren
+bru er43
+bru *+2 !yes
+bru er43
+ldx modun,3 !set input mode to undefined
+ldz
+sta declo !reset string pointer
+lda type
+cab sttype
+bru *+2
+ejt !Page: 89
+bru *+6
+sxg 1
+lda prflag
+bnz kinp11
+bru kprnt2
+lda rpid
+bru stparm
+rem !string followed by comma
+strcom: ldz
+sta declo
+ldx modun,3
+lda type
+cab sttype
+bru input
+bru *+2
+bru input
+lda comid
+stparm: sta symb
+sxg 1
+lda sc+1,1
+sta xr03
+sxg 0
+inx 1,1 !avoid confusing pcall1
+bru pcall1
+emptst: bxh 1,0
+bru full+2
+lda sc,1 !check for non-print procedure
+cab procid
+bru *+2
+bru er43 !was-=what else should i do
+ldo
+sta prflag !set flag to suppress tab
+lda pavail
+sub three
+sta pavail !erase junk generated by 0 length string
+bru full+2
+strbl: cab o60
+bru er43
+bru str2
+bru er43
+rem !str1 imitates char to head in a character
+rem !          as part of a string
+str1: sxg 2
+str2: bxh 2,2 !enter here
+bru str5 !first character of word
+lda ch2,2
+inx 1,2
+str3: ext chmask
+cab o37
+bru 1,3
+bru str4 !character = cr
+cab o77
+bru 1,3
+ejt !Page: 90
+bru str2 !ignore fill character
+bru 1,3
+str4: stx go1,3
+spb edit,3
+ldx go1,3
+bru str2
+str5: inx 1,1
+lda 0,1
+sta ch3
+sra 6
+sta ch2
+sra 6
+ldx zero,2
+bru str3
+
+rem !compiles lilnks
+
+klink: sta lnkflg
+lda lnkspb
+spb write,2
+bru klink1 !go look for quote to start name
+klink2: ldz
+sta lnkflg
+sxg 2
+spb str2,3 !a right paren must
+cab o74 !     follow the name
+bru er27 !!listing has   bru0er27
+bru *+2
+bru er27
+sxg 1 !put in a word of fills
+lda fills !     to turn off the r/t scan
+spb write,2
+ldz !reset declaration flag
+sta declo
+klink1: sxg 2
+ldx modun,3
+bru input
+
+rem !kfot  compiles calls of the standard
+rem !procedures
+
+kfct: spb loadun,2 !load argument of procedure
+sxg 1
+lda sc+1,1 !hopefully name of procedure
+ext o17777
+cab ftype
+bru er29
+bru *+2 !it was
+bru er29
+lda sc+1,1
+ext amask
+sta temp
+add *spb1*
+spb write,2 !store spb to procedure
+ejt !Page: 91
+lda temp
+cab absid !check for type of result - procedures sign
+bru fcti !     and entier must occur physically first
+bru fct2 !      in machine, then abs.
+lda rbit !other procedures have type real
+fct1: sta type !set type of result
+fct2: lda symb
+cab rpid
+bru er27
+bru *+2
+bru er27
+lmo
+sta prev !set prev to indicate a variable
+lda retinp
+sta return !set return to go to input
+inx 2,1 !erase procedure info from sc
+sxg 0
+bru tieup !generate temporary variable for result
+fcti: ldz !integer type for sign and entier
+bru fct1
+nam !procedures - specification of parameters
+ejt !Page: 92
+rem !   spec makes sure that the variable being
+rem !specified is a formal parameter and sets up
+rem !the necessary index registers,
+rem !    xr43  itable location
+rem !    xr42  thunk link
+rem !    temp  itable location + f.p. type
+rem !a count of formal parameters is kept in noel,
+rem !it is reduced by one for each one that is
+rem !specified.  when it goes to zero, whami is
+rem !set to body, thus requiring that every formal
+rem !parameter be specified
+rem !call ed by specv, specs, specp, speca, specd
+
+spec: sxg 4
+ldx xr01,1
+lda nc,1 !variable being specified
+sta temp
+ext o17777 !trim to type
+ext gr1 !trim off value bit
+cab sign
+bru er6 !variable not form, param, [or double spec]
+bru *+2
+bru er6 !variable not form, param, [or double spec]
+lda nc,1
+ext amask
+sta xr42 != loc. of thunk link for variable
+lda 0,2
+ext amask
+sta xr43 != loc. of itable entry for variable
+ldx xr13,1
+lda gr1
+ext temp
+bze
+bru 1,1 !call by value
+bru 2,1 !call by name
+ejt !Page: 93
+rem !specifications of real and integer variables
+rem !are treated identically--they both cause the
+rem !parameter to be treated as being of type real
+rem !however, and additional thunk link [to a
+rem !-transfer routine- thunk compiled in the
+rem !actual parameter list] is provided so that
+rem !an appearance on the left of a colon-equals
+rem !causes this transfer routine to be executed.
+rem !if the actual parameter is an expression or
+rem !a constant, the transfer routine enters and
+rem !error message routine.  if the acutal [sic]
+rem !parameter is a variable of type integer, its
+rem !transfer routine causes the contents of the
+rem !ax to be rounded.  the invocation rou-
+rem !tines are set up at ncp4 and compiled at
+rem !assign.
+
+specv: spb spec,3 !set up specification of variable
+bru vspec !called by value
+lda atype !type of variable
+ext bmask
+bze !form correct type
+lda rbit
+add pavail
+ado !construct address of transfer thunk = 1
+sta atype !ignore specified type.
+lda pavail
+add three
+add *bru*
+stx xr41,2
+spb write,2 !write bru around transfer function
+spb write,2 !write thunk lilnk
+ldx xr41,2
+spec1: lda abit
+ory itable+1,3 !add specified bit to f.p.-id in itable
+spec2: lda atype
+ado !make sure than type word is not zero
+sta 0,2 !set type of variable in thunk
+lda noel
+sbo
+sta noel !number of unspecified objects
+spb spcsym,2 !check for end of specification
+lda noel
+bnz
+bru input !more specifications to come
+sta dstat !declarations now illegal
+lda xtag
+sta whami !whami to body
+bru input
+
+rem !variable called by value.
+
+vspec: ldz
+sto atype
+ejt !Page: 94
+lda vavail
+sub two
+sta vavail !create local variable for call by value
+cab plf 
+sta plf !plf = minimum of plf, vavail
+bru *+1
+lda xr42
+ado
+add *spb2*
+spb write,2 !store spb to thunk
+lda atype
+ext tmask
+bnz
+bru rbool !specified type not integer
+lda rbit
+sta atype
+lda *fld1* !transfer and rount an integer
+spb write,2
+lda rndspb
+spb write,2
+lda *fst*
+bru rbool+3
+rbool: lda *dld1*
+spb write,2 !store dld of value
+lda *dst*
+add vavail
+spb write,2 !store dst or fst of value
+ldx temp,2 !restore index
+lda vavail
+add atype
+sta itable+1,3 !declare local variable in itable
+lda atype
+bru spec2+2
+
+dlabel: lda lbit !specify a label
+add cbit
+sta atype
+specs: spb spec,3 !specify a switch
+bru er52 !illegal call by value
+spec3: lda xr42 !loc. of thunk link
+ado
+add atype
+sta itable+1,3 !declare identifier as if its actual
+bru spec2 !     occurrence were at thunk link
+
+rem !specify a procedure
+rem !called by dproc
+
+specp: spb spec,3 !set up specification of a procedure
+bru *+2
+bru spec3 !not called by value
+lda atype
+ext acmask !trim to high order bits
+cab *fsu* !type for function
+ejt !Page: 95
+bru er52 !illegal call by value
+bru *+2
+bru er52
+lda vavail !create local variable for value
+sub two
+sta vavail
+cab plf
+sta plf
+bru *+1
+add atype
+ext *fsu* !trim type to real, intgr, or bool
+sta itable+1,3 !declare internal variable
+stx temp,2
+lda xr12 != loc. of thunk link
+ado
+add *spb2*
+spb write,2 !store spb to thunk link
+ldz
+spb write,2 !store marker for end of parameter list
+lda bbit
+ext atype
+bnz
+lda *fld* !real or integer procedure
+add *sta*
+add vavail
+spb write,2 !generate store of value of procedure
+spec4: ldx temp,2
+bru spec2
+
+rem !array specification  called by karray
+rem !  indec was called at karray.  the first two
+rem !words of the dope-vector are written and
+rem !space for 5 subscripts is reserved, subscript
+rem !count is set to -1 as a flag to the routines
+rem !which compile array calls.  the address in
+rem !the thunk link points to the dope vector.
+
+
+speca: spb spec,3 !set up specification of array
+bru er52 !**** array called by value
+stx temp,2 !save thunk pointer
+lmo
+spb write,2 !number of subsripts [sic] = -1
+lda pavail
+ldx temp,2
+sto 1,2 !store formal array l0 [looks like L0]
+add atype
+sta itable+1,3 !declare identifier as an array
+ldz
+spb write,2 !array l0 = 0
+lda pavail
+add d20
+sta pavail !reserve room for five subscripts
+cab plf
+ejt !Page: 96
+bru *+3
+bru *+1
+spb adjust,2
+lda symb
+cab scid
+bru spec4 !end of array specification
+bru *+2
+bru spec4 !end of array specification
+lda pavail !end of specification
+ldx declo,2
+ado
+sto 0,2 !fill bru around subscript info
+ldz
+sta declo
+ldx temp,2 !restore index
+bru spec2
+
+specd: spb spec,3 !set up specification of data name
+bru er52 !illegal call by value
+bru spec1
+
+value: ldx xr41,2 !points to itable
+lda itable+1,2
+ext o17777 !trim to type
+cab sign
+bru er52 !not a formal parameter
+bru *+2
+bru er52
+lda gr1
+ory itable+1,2 !set value bit
+spb spcsym,2
+bru input
+
+spcsym: lda xr01
+sbo
+sta xr01
+lda symb
+cab comid
+bru *+2
+bru input
+cab scid
+bru er33 !illegal declaration
+bru *+2
+bru er33 !illegal declaration
+lda xr11
+ado
+sta xr11
+bru 1,2
+nam !procedures - calls and formal parameters
+ejt !Page: 97
+rem !ncpsto  is called by ncsto when the entry
+rem !  in the itable is negative [procedure or
+rem !  formal parameter].
+rem !
+rem !bit 1 on             procedure
+rem !  bit 2 on             library procedure
+rem !    bit 3 on             function-type
+rem !      bits 4-5             type [r-i-b]
+rem !    bit 3 off            i/o procedure
+rem !      bit 4 on             input
+rem !      bit 4 off            output
+rem !  bit 2 off            user-declared
+rem !    bit 3 on             function-type
+rem !      bits 4-5             type [r-i-b]
+rem !    bit 3 off            non-function
+rem !bit 1 off            formal parameter
+rem !  bit 2 on             specified
+rem !    bit 3 on             call by value
+
+ncpsto: ldx whami,2
+bru *+1,2
+bru *+4 !body
+bru ncsto1 !declaration - store in nc
+bru ncsto1 !specification - store in nc
+bru ncsto1 !f.p. list - store in nc
+rem !identifier is a formal parameter or the name
+rem !of a procedure
+ldz
+sta dstat !declaratons now illegal
+lda temp
+add lbit
+bmi
+bru ncp4 !identifier a formal parameter
+lda symb
+ext sign
+cab comid
+bru *+2
+bru ncp1 !variable in procedure call - store in nc
+cab rpid
+bru *+2
+bru ncp1 !ditto
+sub gr2
+cab parid
+bru *+2
+bru ncp2 !procedure has parameters
+lda temp
+add abit
+bpl
+bru er29 !library routine without parameters
+lda gr1 !here for no argument procedure
+ext temp
+bnz
+bru ncp6 !not a function-type procedure
+lda prev !start check for non-function call of function
+ejt !Page: 98
+ext ctag !-type procedure
+spb bfor+16,2
+bru *+2
+bru ncp1 !should be function-type call
+lda symb
+ext sign
+cab scid
+bru *+2
+bru ncp6
+cab endid
+bru *+2
+bru ncp6
+cab elseid
+bru er29 !error in procedure call
+bru ncp6
+bru er29 !error in procedure call
+ncp1: lda temp !no arg. fct., actual parameter, or identifier
+bru ncsto1
+
+ncp6: lda temp !here for no-argument non-function
+ext amask
+add *spb2*
+spb write,2 !store spb to procedure
+ldz
+spb write,2 !marker for no parameters
+bru vcheck
+
+rem !initiate a procedure call . . .
+rem !     sc    procedure-id [with type]
+rem !     sc+1  location of thunk
+rem !generates
+rem !         spb ...      2
+rem !  [sc+1] dec 0
+rem !         dec 0
+rem !         stx *+1      2
+rem !
+rem !the actual thunk is compiled at kparam
+ncp2: lda modun
+sta xr23 !set input mode to undefined
+lda prev
+sta prev2
+bmi
+bru er5 !adjacent expressions
+lda symb
+cab paren
+bru er12 !illegal symbol sequence
+bru *+2
+bru er12 !illegal symbol sequence
+chs
+sta prev
+lda temp
+add abit
+bpl
+bru ncp3 !library procedure
+ejt !Page: 99
+add abit
+ext o17777
+sra 8
+add procid
+sta symb !procedure parenthesis with type
+sxg 1
+lda xr11 !make space in sc for thunk location
+sbo
+sta xr11
+spb stotst,3
+lda pavail
+add two
+sta sc,1 !save location of first thunk
+lda temp
+ext amask
+add *spb2*
+spb write,2 !store spb to procedure
+ldz
+spb write,2 !save location for thunk type
+spb write,2 !save location for thunk storage
+lda pavail
+add *stx2*
+spb write,2 !store index save instruction in thunk
+bru setgr4
+
+rem !library procedure call
+
+ncp3: sub gr1
+bmi
+bru biopro !input-output procedure
+lda fctid
+sta symb !id for library function left paren
+sxg 1
+lda xr11
+sbo
+sta xr11
+lda temp
+sta sc,1 !store name of standard procedure in sc
+bru stosc
+
+biopro: add bbit
+bmi
+bru bopro !output procedure
+sxg 1
+sta xr12
+bru *+1,2
+bru *+4 !readata
+bru rstr
+bru wrtfil
+bru klink !chain
+ldz
+sta noel !number of parameters read = 0
+lda inpid !1000040
+sta symb !input procedure id
+ejt !Page: 100
+bio1: sxg 1
+bru stosc
+
+bopro: lda outpid !output procedure id
+sta symb
+ldz
+sta prflag !initialize tab supression flag
+bru bio1
+
+rstr: lda inpid
+sta symb
+lmo
+sta noel
+bru bio1
+
+wrtfil: lmo !flag for disk write
+sta dskflg
+bru bio1-4
+rem !formal param
+
+ncp4: ext amask
+sta xr42 !set index to point to thunk link
+lda 0,2 !from thunk link
+ext o17777 !trim to type of parameter
+cab dtype
+bru *+2
+bru ncp1 !data formal parameter
+cab sttype !check for string type
+bru *+2
+bru ncp1
+stx xr13,3 !set up exit
+ldx xr01,3
+sta nc+1,3 !put type in nc
+add ssbits
+sta type
+lda 0,2
+ext amask
+add *spb2*
+sta fpflag
+spb stotst,3
+lda temp
+ado
+ext amask
+add *spb2*
+spb write,2 !store spb to thunk
+sxg 0
+inx 2,1 !increment ncc for two-word id
+lda xr01
+cab xr11
+bru *+3
+bru er4 !number cellar - symbol cellar full
+bru er4 !number cellar - symbol cellar full
+lda return
+sta junk
+ejt !Page: 101
+lda retncp
+sta return
+bru tieup !generate temporary variable for index
+rem !return from tieup
+ncp5: lda tst
+ext amask
+add *stx1*
+spb write,2 !store index-save instruction for add of f.p.
+ldx junk,0
+ldz
+sta tst
+bru vcheck
+
+rem !fetchp  is called by fetch when trying to
+rem !generate a load of a no-argument procedure
+fetchp: stx load,2 !save exit from fetch
+add abit
+bpl
+bru er16 !library procedure
+add gr1
+bmi
+bru er16 !not a function-type procedure
+spb stotst,3 !clear run-time accumulator
+lda nc,1
+ext amask
+sta xr02
+!! ????? The following instruction has as its binary
+!! 0456375, which is equivalent to z04 16375,2
+!! the actual location of the label "sidsub" is at location 1403
+!! SOLUTION:  16375 = 20000 - 1403
+bxl sidsub,2 !check for aau error tests
+sta trpflg !if so--supress trap
+add *spb2*
+spb write,2 !store spb to procedure
+ldz
+spb write,2 !marker for no parameters
+lda nc,1
+ext o17777 !trim to type
+ext *fdv* !get type of function
+add crudlo
+sta nc,1 !identifier for one-shot temporary location
+lda bbit
+ext nc,1
+bnz
+lda *fld*
+add *sta*
+add crudlo
+sta tst !set tst to a store in crud
+lda switch
+bmi
+ldo
+sta switch !do not switch order
+ldx load,2
+bru trib
+nam !procedures  parameter lists
+ejt !Page: 102
+rem !kparam  processes a parameter list
+rem !called when a procedure parenthesis is being
+rem !compiled [procid]
+kparam: ldx whami,2
+bru *+1,2
+bru param1 !body of procedure
+bru er33 !illegal declaration
+bru er33 !illegal declaration
+spb blist,3 !list formal parameter
+lda nc,1
+ext amask
+sta xr03 !points to itable entry
+chs
+spb write,2 !store pointer - f.p. type
+lda pavail
+add sign
+sta itable+1,3 !define varable to be a formal parameter
+lda *bru*
+spb write,2 !store link to thunk
+lda noel
+ado
+sta noel !increase count of number of f.p. k
+lda xr01
+sbo
+sta xr01 !erase variable from nc
+lda symb
+cab comid
+bru *+2
+bru input
+cab rpid
+bru er33 !illegal declaration
+bru *+2
+bru er33 !illegal declaration
+sxg 1
+inx 1,1
+bru input !scan for semi-colon
+
+rem !actual parameter list
+rem !sc as set up by ncp2.
+rem !
+rem !     sc    procid
+rem !     sc+1  first location of thunk
+
+param1: lda sc+1,1
+sta xr03 !points to first location of thunk
+sxg 0
+lda nc,1
+ext o17777
+sta type !type of thunk
+bmi
+bru pparam !procedure or f.p. as an actual parameter
+sub lbit
+bpl
+bru lparam !label, switch, data parameter
+ejt !Page: 103
+add abit
+bpl
+bru aparam !array parameter
+lda tst !here for arithmetic or boolean parameter
+bnz
+bru eparam !expression in thunk
+
+rem !here for simple variable as actual para-
+rem !meter
+rem !  [sc+1] oct             type and link
+rem !         dec             address of variable
+rem !         ldx *-1      1  load address
+rem !         bru 1        2  exit
+rem !
+rem !for variables and constants of arithmetic
+rem !type, a transfer thunk is also set up.  See
+rem !comment at specv.
+lda nc,1
+ext amask
+sta 1,3 !second word of thunk = loc. of variable
+lda xr03
+add *ldx1*
+ado
+sta 2,3 !store load or add. of variable
+acall1: lda thret
+spb write,2 !ter,omate tjiml
+spb write,2 !reserve location for type
+lda type
+ext bmask
+bze
+lda rbit !change integer to real
+add pavail
+sta 0,3 !put correct type on thunk
+ldx pavail,3 !update ponter
+spb write,2 !reserve location for index
+lda type
+ext armask !check for constant bit
+bnz
+bru apcon !constant as actual parameter
+acall2: lda type
+xaq
+lda ssbits
+sta type
+xaq
+ext tmask
+bnz
+bru pcall2 !actual parameter is real, write thret,
+lda *stx2* !actual parameter is integer, round value
+add pavail
+spb write,2
+lda rndspb
+spb write,2 !integer causes rounding
+pcall1: lda xr03
+add *ldx2*
+ejt !Page: 104
+ado
+spb write,2 !generate index restore
+pcall2: lda thret
+spb write,2 !store return from thunk
+pcall4: ldz
+spb write,2 !marker for end of call or for nex thunk
+lda pavail
+add type
+sta 0,3 !store type of thunk = loc. of next thunk
+lda symb
+cab rpid
+bru *+2
+bru pcall5 !end of procedure call
+cab comid
+bru er29 !error in procedure call
+bru *+2 !more parameters to come
+bru er29 !error in procedure call
+
+rem !set-up for next parameter
+rem !  [sc+1] oct 0           for type and link
+rem !         oct 0           thunk storage
+rem !         stx *+1      2
+
+lda xr01
+sbo
+sta xr01 !erase parameter from nc
+ldx xr11,2
+lda pavail
+sta sc+1,2 !save address of first location of next thunk
+spb write,2 !reserve location
+lda pavail
+add *stx2*
+spb write,2 !store index-save instruction
+bru input
+
+rem !end of procedure call, checking and
+rem !putting counters in step
+
+pcall5: ldx xr11,2
+lmo
+sta prev
+lda o400
+ext sc,2
+bze
+bru pcall6 !function-type procedure
+pcall3: ldx xr11,2
+lda xr01
+sbo
+sta xr01 !erase parameter from nc
+inx 1,2
+stx xr11,2 !erase procedure info from sc
+bru kinp11
+
+rem !likewise for function-type procedure
+ejt !Page: 105
+pcall6: lda sc+2,2
+ext ctag
+spb bfor+16,2 !check against begin else then do sc etc
+bru pcall3
+ldx xr11,2
+lda sc,2
+ext comask
+sla 8
+sta type != type of function
+inx 2,2
+stx xr11,2
+lda retinp
+sta return
+bru tieup !generate temp. variable for value of proc.
+
+rem !expressions of read or integer type as well
+rem !as constants generate an error message in the
+rem !transfer thunk.  See comment at specv.
+
+eparam: spb write,2 !generate store of computed value
+lda pavail
+add *ldx1*
+spb write,2 !generate iondex load of address of result
+lda tst
+ext amask
+ldz
+sta tst
+lda xr03
+add *ldx2*
+ado
+spb write,2 !restore index 2
+lda thret
+spb write,2 !return
+spb write,2 !save location
+lda type
+ext bmask
+bze
+lda rbit
+add pavail
+sta 0,3 !set link on completed thunk
+ldx pavail,3 !update pointer
+spb write,2 !save location
+apcon: lda strerr !bru to assignment error
+spb write,2
+lda ssbits
+sta type
+bru pcall4
+rem !subscripted variabgle, formal parameter, or
+rem !  array name as actual parameter
+
+aparam: sub gr1
+bmi
+bru pcall7 !array not subscripted
+ejt !Page: 106
+stx junk,3
+ldx pavail,3
+lda nc-1,1
+ext o17777
+sta type !type of array
+lda nc-1,1
+ext amask !trim to array lo
+bze
+bru apar2 !formal parameter, address already in xr01
+spb write,2 !store array l0
+lda pavail
+add *add*
+spb write,2 !generate *add* of array l0
+lda pavail
+add *bru*
+sta 0,3 !store bru around array l0
+lda *sta*
+ado !form sta 1 to put address in xr01
+spb write,2
+lda nc,1
+ext amask
+spb untemp,3 !release loc. used by index
+ldx junk,3
+lda xr01
+sbo
+sta xr01 !erase subscript info
+lda xr03
+add *ldx2*
+ado
+spb write,2
+bru acall1
+
+apar2: lda pavail
+sbo
+sta pavail !erase stx
+lda nc,1 !address of index
+ext amask
+spb untemp,3 !restore temporary location to available
+ldx junk,3
+lda xr01
+sbo
+sta xr01 !erase parameter from nc
+lda fpflag
+bpl
+bru *+4
+ldo
+add *sta*
+spb write,2
+lda xr03
+add *ldx2*
+ado
+spb write,2 !index restore
+lda thret
+spb write,2
+ejt !Page: 107
+spb write,2
+lda type
+ext bmask
+bze
+lda rbit
+add pavail
+sta 0,3
+ldx pavail,3 !update thunk pointer
+spb write,2
+lda fpflag
+bmi !check for array formal parameter
+bru acall2
+ext amask
+add *bru*
+spb write,2 !write branch to transfer thunk
+bru pcall4
+
+rem !array as actual parameter
+
+pcall7: lda nc,1 !array identifier
+sta 1,3 !store in first word of thunk
+lda xr03
+ado
+sta pavail
+bru pcall4
+
+rem !label, data, switch or designational
+rem !expression as an actual parameter
+
+lparam: lda type
+ext xtag !remove defined bit
+cab dtype
+bru *+2
+bru dparam !data parameter
+cab detype
+bru *+2
+bru lpar1
+stx junk,3
+spb goto,3 !form bru to label
+inx 1,1 !get number cellar counter back in step
+ldx junk,3
+lda type
+sub swtyp2
+bze lpar2
+
+lpar1: lda lbit
+sta type
+bru pcall1
+lpar2: lda swtype
+bru lpar1+1
+
+rem !thunk for data only sets up the block name
+
+dparam: lda rdaspb
+ejt !Page: 108
+sta 2,3
+lda xr03
+add two
+sto pavail !wipe out any line-numbers stored
+ldz
+spb write,2
+lda dtype
+spb chain,2 !fill in name of data block
+nop
+bru pcall2
+
+rem !procedure name as actual parameter,
+rem !unless it is a library function, thunk is
+rem !a branch to the procedure
+
+pparam: xaq
+lda pavail
+sbo
+sta pavail !erase index-save from thunk
+xaq
+add lbit !test for bit 1 on
+bmi *+6 !no - format parameter
+
+sub abit !test for bit 2 on
+bpl pcall8 !yes - library procedure
+
+bru pparm1 !no - declared procedure
+
+lda nc,1
+ext amask
+sta 0
+ado
+add *bru*
+spb write,2
+ldx 0,2
+lda 0,2
+ext o17777
+sta type
+bru pcall4
+
+pparm1: lda nc,1
+ext amask
+add *bru*
+spb write,2
+bru pcall4
+
+rem !library function as actual parameter
+rem !the compiler fudges a procedure declaration
+rem !  to match call in users procedure
+rem !
+rem !     rpr *+11       type-address of next
+rem !     dec 0          not used
+rem !     spb linker  1  link with call
+rem !     dec *+7        address of exit
+rem !         notype     argument real or integer
+ejt !Page: 109
+rem !     bru 0          address supplied by linke
+rem !     dec 0          end formal params
+rem !     spb *+2     2  goto thunk
+rem !     fld 0       1  load argument
+rem !     spb libfcn  1  execute library function
+rem !     bru 0          exit supplied by linker
+
+pcall8: lda prospb !generate dummy procedure
+spb write,2 !spb to linkage
+lda pavail
+add eight
+spb write,2 !store add of exit from procedure
+lda rbit
+add pavail
+add seven
+spb write,2 !type of argument is ambiguous
+lda *bru*
+spb write,2 !thunk link
+ldz
+spb write,2 !marker for end of links
+lda pavail
+sbo
+add *spb2*
+spb write,2 !spb to thunk to get argument
+lda *fld*
+add xtag
+spb write,2 !storefld of argument
+lda nc,1 !name of procedure
+ext amask
+add *spb1*
+spb write,2 !store spb to library procedure
+lda *bru*
+spb write,2 !store exit from dummy procedure
+lda nc,1
+ext amask
+cab absid
+bru pcall9 !result is integer
+bru pcall9 !result is integer
+lda rproc !real procedure (defined)
+sta type
+bru pcall4
+pcall9: lda *fsu*
+sta type
+bru pcall4
+nam !odds and ends
+ejt !Page: 110
+kparen: lda symb
+cab rpid !right parenthesis identifier
+bru er27 !suspect missing close paren
+bru *+2
+bru er27 !suspect missing close paren
+lmo
+sta prev !set prev to variable
+inx 1,1 !erase left parenthesis from symbol cellar
+bru input
+
+rem !bassgn  checks to see if the assignment
+rem !belongs to a switch or data declaration,
+rem !and if so, initiates these declarations.
+bassgn: lda sc,1
+add gr2
+cab forid
+bru *+2
+bru forass !assignment in for statement
+cab swid !switch identifier
+bru *+2
+bru bswtch !start switch declaration
+cab dataid !data identifier
+bru bass2 !store assignment in symbol cellar
+bru *+2 !assignment in data declaration
+bru bass2 !store asignment in symbol cellar
+lda pavail
+bev
+bru *+3
+lda *nop* !adjust pavail so that data storage will be
+spb write,2 !     in required even-odd locations
+spb indec,3 !generate branch around declaration
+ldz
+sta noel !noel is number of elements in declaration
+sta cread !reset read flag
+sta cmode !set constant mode to data
+spb write,2 !reserve two places for declaration pointer
+lda dtype
+spb define,2 !define data block
+spb write,2 !save loc for number of constants in block
+bru input
+rem !test at this point to see if the variable
+rem !on the left of the colon-dquals is a formal
+rem !parameter. if so, stick on a flag for assign.
+bass2: ldz
+sta dstat !set non-declaration status
+ldx xr01,2
+lda abit
+ext nc,2 !last entry in n.c.
+bnz
+bru setgr4 !not array
+lda nc-1,2
+ext amask
+bnz
+bru setgr4 !not formal parameter
+ejt !Page: 111
+lda symb
+add o100
+sta symb
+lda fpflag
+sta sc-1,1
+lda xr11
+sbo
+sta xr11
+bru setgr4
+
+rem !stotst generates a store of a partial
+rem !computation.
+rem !called by kumin, keor, kuntm, kprint, ncp2,
+rem !  ncp4, fetchp
+stotst: lda tst
+bze
+bru 1,3
+spb write,2
+ldz
+sta tst
+bru 1,3
+
+kmnt0: cab clist+13 !code for semicolon
+bru *+2
+bru kmnt1 !got semicolon
+bnz
+bru kmnt3 !check for special call
+kmnt5: bpl !check for non-positive
+bze
+bru kmntlp+1 !check for end or else after space, symbol
+spb char,3
+bru kmnt0
+
+rem !comment loop    search for semicolon, end,
+rem !     and else
+
+kmntlp: stx junk,3 !save exit from loop
+spb char,3
+cab e !check for e
+bru kmnt0
+bru *+2
+bru kmnt0
+spb char,3 !it is
+cab l !check for l (L)
+bru kmnt0
+bru kmnt2 !continue to check for else
+cab n !not l -- could be n
+bru kmnt0
+bru *+2
+bru kmnt0
+spb char,3 !it is
+cab d !check for d
+bru kmnt0
+bru *+2
+ejt !Page: 112
+bru kmnt0
+spb kpeek,3 !peek ahead one charachter
+bmi
+bru *+3 !special character , . . we got end
+bnz
+bru kmnt0 !not space -- do not recognize
+lda endid
+kmntex: ldx junk,3 !restore exit
+bru 1,3
+
+kmnt1: lda scid
+bru kmntex
+kmnt2: spb char,3
+cab s !check for s
+bru kmnt0
+bru *+2 !it is
+bru kmnt0
+spb char,3
+cab e !check for e
+bru kmnt0
+bru *+2 !it is
+bru kmnt0
+spb kpeek,3 !peek ahead one charachter
+bmi !space
+bru *+3 !  op
+bnz !  special
+bru kmnt0 !  character
+lda elseid !  indicates
+bru kmntex !-else-
+
+rem !  kmnt3 is called when a non-blank character
+rem !is not part of an end or else, and is not a
+rem !semicolon.  if term =/ 1 this is an error
+rem !condition.
+kmnt3: sta temp
+lda term !no-comment flag
+bnz
+bru er24 !symbols only, please
+lda temp
+bru kmnt5
+rem !     kpeek gets the internal code for the
+rem !very next source character
+
+kpeek: stx temp,3 !save exit
+bxh 2,2
+bru nextch
+lda ch2,2
+ext chmask
+kmnt4: sta xr23
+lda clist,3
+ldx temp,3
+bru 1,3
+
+nextch: lda 1,1
+ejt !Page: 113
+sra 12
+bru kmnt4
+rem !symb = comment
+kcmnt: lda prev2 !      check for legal occurrence of comment
+cab scid
+bru *+2
+bru *+5
+cab begin
+bru er24 !suspect missing semicolon
+bru *+2
+bru er24 !suspect missing semicolon
+sxg 2
+spb kmntlp,3 !get terminating symbol
+cab scid !check for semicolon
+bru *-2
+bru *+2 !it is -- exit
+bru *-4
+sta prev
+ldx modun,3
+bru char
+nam !declarations
+ejt !Page: 114
+rem !shosym  checks for commas, semicolons, and
+rem !ends.  control is returned to input for comma
+whosym: lda symb
+cab comid
+bru *+2
+bru input
+cab scid
+bru *+2
+bru whosi
+cab endid
+bru er33 !illegal declaration
+bru *+2
+bru er33 !illegal declaration
+whosi: lda xtag
+sta whami !set whami to body
+ldz
+sta own !reset own-flag
+bru 1,2
+
+rem !indec  generates a transfer around a switch,
+rem !data, or array declaration.
+rem !call by da2, bswtch, down, bassgn
+
+indec: lda *bru*
+spb write,2 !store bru
+lda declo
+bnz
+bru er33 !nexted declaratoins
+lda pavail
+sta declo !save address of loc to fill in later
+bru 1,3 !exit from indec
+
+down: lda own
+bnz
+bru er39
+lda whami
+sta own !set own-flag non-zero
+cab xtag
+bru er39 !nested something
+bru *+2
+bru er39 !nested something
+spb indec,3 !set branch around own variablles
+bev
+spb write,2
+bru dreal1
+
+dintgr: ldz
+bru dreal+1
+dbool: lda bbit
+bru dreal+1
+iswtch: lda own
+bnz
+bru er33 !cannot be own
+lda swtype
+ejt !Page: 115
+add cbit
+bru dreal+1
+dreal: lda rbit
+sta atype
+ldx whami,2
+bru *+1,2
+bru dreal1 !whami = body
+bru ownchk !illegal declaration
+bru setgr4 !specification
+bru er33 !declarator in formal parameter list
+
+inx 1,1
+dreal1: lda dstat !declaration-legal falg
+bze
+bru er32 !declaration in middle of block
+lda declid
+sta whami !set whami to declaration
+lda sc,1
+cab begid !check for block entry
+bru setgr4
+spb block,3 !enter block
+bru setgr4
+
+
+rem !declar defines the last entry in the nc
+
+declar: lda whami
+cab specid
+bru *+2 !declare variable
+bru specv !specify variable
+spb blist,3 !list identifier in bs list if neccessary
+lda own
+bnz
+bru owndec !own-declaration
+lda vavail
+sub two
+cab pavail
+bru er1 !storage exhausted
+bru er1 !storage exhausted
+cab plf
+sta plf !vavail is upper bound for program storage
+bru *+1
+sta vavail
+dec2: add atype
+ldx xr41,2 !pointer to itable entry for identifier
+sta itable+1,2 !set itable id
+lda xr01
+sbo
+sta xr01 !erse identifier from nc
+spb whosym,2 !check for end of declaratioin
+sxg 1
+lda declo
+bze
+bru repeat
+ejt !Page: 116
+sta xr12
+lda pavail
+ado
+sto 0,2
+ldz
+sta declo
+bru repeat
+
+owndec: lda pavail
+spb write,2
+spb write,2
+ado
+bru dec2
+
+ownchk: lda prev2
+cab ownid
+bru er33 !nested declarations
+bru dreal1-1
+bru er33 !nested declarations
+ejt !Page: 117
+rem !chain is a subroutine used in the definition
+rem !of labels, switches, and data blocks.  if
+rem !one of these identifiers is referenced before
+rem !it is defined, the address of the instruction
+rem !which would normally be generated becomes
+rem !a ponter to the last instruction referencing
+rem !the identifier.  the first instruction
+rem !referring to the identifier pooints to the
+rem !itable identifier, which the itable id points
+rem !to the last element in the chain.
+rem !  enter on xr2 in any group. exit group 0.
+
+chain: add cbit
+sta atype != defined type of identifier
+stx itemp,2 !save exit
+sxg 0
+lda nc,1 !identifier to be examined
+ext o17777
+cab atype
+bru *+2
+bru chain1 !identifier already defined
+cab notype
+bru *+2
+bru chain3 !first occurrence of identifier
+add cbit
+cab atype
+bru *+2
+bru chain0 !identifier refenced, but not defined
+lda depth !identifier apparently the wrong type
+bze
+bru chain4 !error exit from chain
+sxg 1
+spb blist,3 !enter identifier in blist
+lda bs+1,2 !move identifier from outer bglock up to make
+sta bs+3,2 !     room for pointer to label
+lda sign
+ory bs,2 !set minus sign to indicate a label in list
+chain3: ldx bsc,2 !now add word for label to list
+bxh bslf,2
+bru er3 !too many symbols defined at once
+inx 2,2
+stx bsc,2 !update bsc
+ext smask !trim word to sign
+chs !complete fudge to get proper sign
+add xr41 !ponter to itable entry
+sta bs,2 !store word for label in list
+lda noob
+ado
+sta noob !increase count of number of undefined objects
+lda nc,1
+ext amask
+sta xr03
+ejt !Page: 118
+bru chain2
+chain0: lda nc,1 !scan back through chain to find itable entry
+ext amask
+sta xr03
+chloop: lda 0,3 !load previous entry in chain
+ext amask
+sto xr03 !save pointer to entry before that
+cab o2000
+bru *+3
+bru chloop !look back still further
+bru chloop !look back still further
+chain2: lda pavail !address of itable id is in cr03 now
+add atype
+ext cbit !set type to undefined
+sta itable+1,3 !update pointer in itable identifier
+chain1: lda nc,1
+ldx pavail,2
+sto 0,2 !fill in address of instruction
+ldx itemp,2
+bru 2,2 !normal exit
+
+chain4: ldx itemp,2
+bru 1,2
+
+rem !define  defines an identifier of the type
+rem !put into a chain by the preceeding subroutine
+rem !and at the same time fills in all addresses
+rem !in the chain.
+
+define: sta atype != type of identifier being defined
+stx itemp,2
+sxg 0
+lda nc,1 !identifier being defined
+ext amask
+spb tempck,3
+bru er12
+sta xr03 !index in i-table, or chain
+bxl 1000,3
+bru *+3
+bxl prog,3
+bru er12
+lda nc,1
+ext o17777 !trim to type
+cab notype
+bru *+2
+bru defnew !identifier never referenced - life is easy
+cab atype !atype bit 6 =0, i.e. undefined
+bru *+2
+bru defref !identifier already referenced in block
+ext cbit !form undefined type
+cab atype
+bru *+2
+bru er34 !identifier defined twice
+lda depth
+ejt !Page: 119
+bze
+bru er34 !identifier defined twice
+sxg 1
+spb blist,3 !get old identifier out of itable and into bs
+lda bs+1,2
+sta bs+3,2 !put identifier in proper place in bs
+lda sign
+ory bs,2 !set sign bit for label entry in bs
+lda bs,2
+sta xr03 !reset pointer to itable element
+defnew: ldx bsc,2
+bxh bslf,2
+bru er3 !bs full
+inx 2,2
+stx bsc,2
+ext smask !fudge to get proper sign
+chs
+add xr41 !ponter to itable entry
+sta bs,2 !store in bs
+lda pavail
+bru deout
+defref: lda noob
+sbo
+sta noob !decrease count of number of undefined objects
+deloop: lda 0,3 !load last element in chain
+ext amask
+sta temp
+lda pavail
+sto 0,3 !fill in address in chain
+ldx temp,3
+bxh 1000,3
+bru deloop !more left in chain
+deout: add atype
+add cbit !bit to indicate identifier is defined
+sta itable+1,3 !set itable identifier
+ldx itemp,2
+lda xr01
+sbo
+sta xr01 !drase name of identifier from nc
+bru 1,2 !exit from define
+ejt !Page: 120
+ddata: lda dtype
+sta atype
+bru setgr4
+rem !kdata compiles data declarations
+kdata: lda whami
+cab specid
+bru *+2
+bru specd !specify data name
+lda noel
+ado
+sta noel !increment number of elements in list
+lda const
+spb write,2 !store first half of constant
+lda const+1
+spb write,2 !store second half
+spb whosym,2 !check for end of declaration
+lda cread
+bze
+bru er31 !no data in data declaration
+ldo
+sta cmode !set constant mode back to normal
+ldx declo,2
+bxl 1,2
+bru er33 !declaration is all fouled up
+lda pavail
+ado
+sto 0,2 !plant address of transfer around block
+lda noel
+sla 1 !double for double word constants
+sta 2,2 !2nd word of ponter = no. of words in block
+ldz
+sta declo !reset declo
+sta cread
+bru repeat
+dacon: spb vcheck,3 !check syntax
+ldo
+sta cread !indicate a constant has been read
+bru outc2

@@ -1,0 +1,2422 @@
+ejt !Page: 000000
+rem !          basic compiler
+rem !          **********
+rem !          telebasic rev. 1
+rem !             basic and teach combined
+rem !             8 feb 65
+rem !             3
+rem !             on tape 13
+rem !          **********
+rem !          primary memory allocation
+rem !          compile time storage allocation
+rem !          **********
+rem !          use of index groups
+rem !             group 0 is the standard group and is used
+rem !             by almost everything.
+rem !             group 1 is used by print and input.  it
+rem !             is not preserved.
+rem !               group 4 is frequently destroyed by data
+rem !run-time use of index groups
+rem !     group 0 almost everything
+rem !     group 1-- real time input
+rem !     group 2-- xr21 is used by pop and push and must b
+rem !          preserverved throughout run-time
+rem !     group 4--destroyed by disk use
+rem !
+trploc: eqo 205 !trap index  group 33
+work: eqo 1400 !constants and some run-time subroutines
+loc 4000 !save area
+time: bss 1 !     adjusted starting time
+exon: bss 1 !     output buffer pointer
+entire: bss 1 !     combined length of tested and tester
+length: bss 1 !     length of source program  [mod 64]
+ux: eqo 6000 !pick up source here
+loc 4100 !compile time use of  4100 to beginning of exl
+e: bss 400 !     error message output buffer
+vc: bss 72 !     working storage
+t: bss 24 !     temporary storage
+l: bss 80 !     line translation buffer
+f: bss 480 !     first orders of instructions
+rem        !               first word--binary line no.
+rem        !               second word--location
+arp: bss 150 !arith routine object buffer
+aru: bss 50 !arith routine working srtoe
+n: bss 42 !used to compile for statements
+rem        !          word triples
+rem        !               word 1--loc of index variable
+rem        !               word 2--loc of interior of loop
+rem        !               word3--loc of runtime store
+rem !
+rem ! run-time use of area between 4100 and exl
+loc 4100
+exo: bss 860 !output buffer
+exir: bss 104 !temp store for for loops, 4 words per loop
+exu: bss 100 !temp store for srithmetic statements
+temp: bss 22 !temp store for standard routines[din, etc.]
+ejt !Page: 000001
+ws: bss 50 !working storage for runtime routines
+rst: equ * !stack of return address for gosubs
+rem !
+rem !rest of 6k area used in common by compile and run
+org n+42
+exl: bss 150 !generated constants
+g: bss 80 !go-table
+rem !     during run branches, during compile
+rem !          binary line no.s
+b: bss 42 !communication between compile and run
+bss 22 !     unused [held to force data to mod 64]
+plist: bss 4 !file control list for data i/o
+dataj: bss 1 !region pointer [range 0-255]
+datai: bss 1 !region pointer [ range 0-127]
+dend: bss 1 !last record of data
+drec: bss 1 !last read record [next to be processed]
+d: bss 256 !data region
+bss 1 !reserved for disk parity errors
+dpnt: bss 1 !current data record
+fnt: bss 28 !function definition transfer table
+dimx: bss 54 !dimension table,  word pairs--
+rem          !          word 1--abs loc of 1st element
+rem          !          word 2-- # of col at bb9
+rem          !                        # of rows at b19
+p: equ * !object  and variable area
+vartab: eqo 17326 !symbol table, destroyed at run time
+ds: eqo 17764 !$ variable porton of symbol table
+top: eqo 17777 !top of lower memory
+rem !**********
+rem !**********
+rem !heading for time sharing executie
+loc 20000
+dec 0 !this location is filled in by the exec
+bru start !initial entry point
+dec -1 !branch to cleanup if scratch disk is used
+dec -1 !saved for future compatibility
+alf bas !system name
+dec 0 !overlay number
+dec work !to location for initial move
+dec -1280 !this may words
+oct 31400 !from this location
+oct 70002
+nam !compiler initialization
+ejt !Page: 000002
+start: set pbk !avoid interrupt until length and entire
+rem !are picked up
+sxg 0 !main index group
+dld trpbr !initialize trap locations
+dst trploc+1
+sta trploc
+rem !the next dozen instructions determine from
+rem !the sign of length  shther this is a teach
+rem !or basic run.  length has a minus sign
+rem !tracked on if the program is to be teach.
+lda length !length of source or program to be tested part
+srd 0 !save the sign in q
+ext sign
+sta xr01 !hold in sr until memory has been cleared
+sld 0 !get back the sign bit
+sra 19 !set a to -1 or 0 depending on sign bit
+sta xr02 !hold in index until 6k area is cleaned up
+bnz
+bru *+3
+lda xr01 !length of source if this is basic
+bru *+2
+lda entire !length of prog to be tested and tester
+sla 6
+set pst !john can now fudge up the sav area
+neg
+lqa !get ready for mov
+add varloc !gives to address
+sta xr03 !points to beginning of source program
+mov ux !move source program up
+lda zero
+sta e
+sta ux
+lda o6000 !location of xource upon entry
+ado
+lqa !to address for mov
+sub xr03 !subtract starting loc of relocated source
+xaq
+mov ux !zero from 6000 to start of source
+dld clnmov
+mov e !zero from 4100 to 6000
+set nflpoint
+rin
+set ntpmode !do not enter trap until run time
+nam !source program input and translation
+ejt !Page: 000003
+lac !start counting time
+sta time
+lda n6 !initialize time reference
+sla 6
+sta tref
+lda zero
+sta exon
+sta er
+sta vartab
+sta fnt
+sta vc
+dld vcmov !zero compile working storage
+mov vc
+dld fntmov !zero function transfer table
+mov fnt
+dld varmov !zero symbol talbe
+mov vartab
+lda min
+sta dimx
+dld dimmov !set dimx table to -1
+mov dimx
+lda vinit !initialize available space pointer
+sta vavail
+stx uloc,3 !initialize pointer to beginning of source
+stx tflag,2 !init teach flag
+lda dwrite !init plist
+sta plist
+lda dloc
+add o200
+sta plist+1
+ldo !  set read/write indicator to successful
+sta plist+3
+ldz !init various data pointers
+sta datai
+sta dataj
+sta dpnt
+lda znop !set nop at interface
+sta top
+lda n7 !initialize comp time out buff pointeer
+neg
+lqa
+lda exoloc !initialize mov con for comp time errors
+ado
+dst ermov
+lda uloc !initialize beginning of line pointer
+sta begl
+stx savlen,1 !save the length of prog to be tested for tea
+ldx one,0 !initialize index registers
+ldx zero,1
+ldx zero,2
+rem !   initialize compiler working storage
+rem !   move characters to one line of source
+rem !     to the l-region,one character per
+ejt !Page: 000004
+rem !     word.
+rem !   perform chacter translation
+rem !        delete blanks
+rem !        stop on carriage retirm
+rem !   after initial entry to list all successive
+rem !      entrie and made to list1.
+rem !   xreg use -
+rem !      xr0 - characvter ponter for u
+rem !      xr1 - spe
+rem !      xr2 - l-region pointer
+rem !      xr3 - u-region ponter
+stx t+1,1
+list3: lda u,3
+sra 12
+sta t
+inx 1,0
+spb trans,1
+sta l,2
+inx 1,2
+lda u,3 !second character of word
+sra 6
+ext m3
+sta t
+inx 1,0
+spb trans,1
+sta l,2
+inx 1,2
+lda u,3 !3rd character
+ext m3
+sta t
+ldx one,0
+inx 1,3
+spb trans,1
+sta l,2
+inx 1,2
+bru list3
+list6: lda t
+sta l,2
+lda 2
+sub one
+sta endl
+ldx t+1,1
+stx ir3,3
+ldx tflag,0 !set up flag for easy access
+bru comp
+list1: ldx one,0 !set char pont to first char
+lda ir3
+sta begl !save pointer to first word of line
+sta xr03 !init word pointer
+lda zero
+sta apf
+lda uloc !check for object overlapping source
+add xr03
+sub ploc
+ejt !Page: 000005
+sub xr01
+bmi
+bru input8
+ldx zero,2
+bru list3-1
+list11: lda savlen !entered after first end instruction
+sla 6 !compute starting location of tester
+add uloc
+sta ir3 !set up indexes for list
+ldo
+sta ir
+bru list1 !continue processing instructions
+lister: dld ermov
+mov lab11
+lda ermov
+add n7
+sta ermov
+lda one
+sta er
+bru run
+input8: dld ermov
+mov lab15
+bru err30
+rem !**********
+rem !trans is the subroutine used by list
+rem !   to perform character translation
+rem !   characters are translated through table
+rem !     s2.
+trans: lda apf
+bmi
+bru tran2
+stx t+5,1 !!handwritten notes
+ldx t,1
+lda s2,1
+ldx t+5,1
+bpl
+bru 1,1
+add n12
+bze
+bru tran3
+add n19
+bze
+bru list6
+add n14
+bze
+bru *+2
+bru 3,1
+ldx t+1,1
+bru lister
+tran6: ldx t+1,1
+stx ir3,3
+bru leter
+tran3: lda min
+sub apf
+ejt !Page: 000006
+sta apf
+lda n12
+bru 1,1
+tran2: lda t
+cab n12
+bru 1,1
+bru tran4
+cab n28
+bru 1,1
+bru tran3
+cab n31
+bru 1,1
+bru tran6
+cab n60
+bru 1,1
+bru tran5
+bru 1,1
+tran4: lda n61
+bru 1,1
+tran5: lda n62
+bru 1,1
+rem
+rem !**********
+rem !the comp routine
+rem !   checvks for line no.s pvber 6 digits
+rem !   builds the f-table and checks for too
+rem !     many lines in program - 241.
+rem !   places first letter of instruction in
+rem !     xr3 in preparation ofr indexed branch
+rem !   places second letter of instruction in
+rem !     a register
+rem !xreg use --
+rem !   xr0 - not used
+rem !   xr1 - p-region pointer
+rem !   xr2 - l-region pointer
+rem !   xr3 - indexed branch to q-jump table
+comp: ldx zero,2
+spb inst,3
+bru inst8
+bxl 1,0 !if this is a basic program then
+bru comp1 !skip this fudging around
+lqa !hang on to line no.
+lda endf
+bmi
+bru *+4
+bxh 5,2 !line # no longer than 4 digits for ptbt
+bru inst8
+laq !get bin. line no. back in a
+comp1: bxh 6,2 !allow 5 dig in tester or regular basic
+bru inst8
+ldx fn,3
+sta f,3
+sta p+1,1 !store line no. in object prog
+lda 1
+ejt !Page: 000007
+sta f+1,3
+add zspb1 !generate *spb *+2,1 *
+add ploc
+add two
+sta p,1 ! store in object prog
+lda zstwr !store a *stx wai,1 * in object
+sta p+2,1
+lda l,2
+cab n31
+bru *+2
+bru list1
+inx 3,1 !increment object ponter
+inx 2,3
+stx fn,3
+bxh 481,3
+bru input8
+sta 3
+inx 1,2
+lda s,3
+bmi
+bru comp2
+sub ten
+bmi
+bru comp2
+add upbit
+sta 3
+lda l,2
+inx 1,2
+bru q,3
+comp2: dld ermov
+mov lab4
+bru error
+nam !compilation of instructions
+ejt !Page: 000008
+rem !the following routines decode and compile
+rem !   instructions, line at a time.
+rem !**********
+
+rem !the q-jump table is entered from comp
+rem !   according to the first letter of an
+rem !   instruction.
+rem !a jump is made to the appropriate decoding
+rem !   routine.
+q: bru comp2
+bru comp2
+bru comp2
+bru qd
+bru qe
+bru qf
+bru qg
+bru comp2
+bru qi
+bru comp2
+bru comp2
+bru ql
+bru comp2
+bru qn
+bru comp2
+bru qp
+bru comp2
+bru qr
+bru qs
+bru qt
+bru comp2
+bru comp2
+bru comp2
+bru comp2
+bru comp2
+bru comp2
+rem !the following q-routines are entered from
+rem !   the q-jump table. a check is made for
+rem !   illegal instruction words.  if an
+rem !   illegal instruction is encountered
+rem !   a transfer is made to the error exit
+rem !   comp2. if the instruction word is a
+rem !   legal command a transfer is made to a
+rem !   routine which further decodes the
+rem !   appropriate instruction and compiles
+rem !   the associated object instructions.
+qd: sub n17
+bnz
+bru qdi
+lda l,2
+inx 1,2
+sub n51
+bnz
+bru comp2
+lda l,2
+ejt !Page: 000009
+inx 1,2
+sub n17
+bnz
+bru comp2
+bru data
+qde: add n4
+bnz
+bru comp2
+lda l,2
+inx 1,2
+sub n22
+bnz
+bru comp2
+bru def
+qdi: sub n8
+bnz
+bru qde
+lda l,2
+inx 1,2
+sub n36
+bnz
+bru comp2
+bru dim
+qe: sub n37
+bnz
+bru comp2
+lda l,2
+inx 1,2
+sub n20
+bnz
+bru comp2
+bru end
+qf: sub n38
+bnz
+bru comp2
+lda l,2
+inx 1,2
+sub n41
+bnz
+bru comp2
+bru for
+qg: sub n38
+bnz
+bru comp2
+bru go
+qi: cab n22 !check for f
+bru comp2
+bru if
+cab n37 !check for n
+bru comp2
+bru *+2
+bru comp2
+lda l,2 !check next three letters for put
+sla 6
+ejt !Page: 000010
+add l+1,2
+sla 6
+add l+2,2
+inx 3,2
+cab put
+bru comp2
+bru inp
+bru comp2
+ql: sub n21
+bnz
+bru comp2
+lda l,2
+inx 1,2
+sub n51
+bnz
+bru comp2
+bru let
+qn: sub n21
+bnz
+bru comp2
+lda l,2
+inx 1,2
+sub n55
+bnz
+bru comp2
+lda l,2
+inx 1,2
+sub n51
+bnz
+bru comp2
+bru next
+qp: sub n41
+bnz
+bru comp2
+lda l,2
+inx 1,2
+sub n25
+bnz
+bru comp2
+lda l,2
+inx 1,2
+sub n37
+bnz
+bru comp2
+lda l,2
+inx 1,2
+sub n51
+bnz
+bru comp2
+bru  prt
+qr: sub n21
+bnz
+bru comp2
+lda l,2
+ejt !Page: 000011
+inx 1,2
+sub n51
+bze
+bru ret2
+add n15
+bze
+bru rem
+add n19
+bnz
+bru comp2
+lda l,2
+inx 1,2
+sub n20
+bnz
+bru comp2
+bru read
+qs: sub n51
+bnz
+bru comp2
+lda l,2
+inx 1,2
+sub n38
+bnz
+bru comp2
+lda l,2
+inx 1,2
+sub n39
+bnz
+bru comp2
+bru stop
+qt: bxl 1,0 !not legal in regular basic
+bru comp2
+sla 6 !check for time instruction in teach
+add l,2 !pack next 3 characters in line
+sla 6
+add l+1,2
+inx 2,2 !increment line pointer
+cab ime !check  these letters
+bru comp2
+bru *+2
+bru comp2 !illegal instruction
+lda endf
+bze comp2 !illegal for tested program
+
+bru timchk !ok to process
+ejt !Page: 000012
+data: lda xr01 !overwrite line no.
+sub n3
+sta xr01
+bxl 1,0 !allow data in regular basic
+bru dat1
+lda endf !do not allow data in tested program
+bze
+bru list1 !go compile next line
+dat1: sxg 1 !disk pointers are in group 1
+ldx datai,0 !words in buffer
+ldx dataj,2 !index relative to d
+ldx dpnt,3 !record currently in memory
+bxh 40,3 !   too much data
+bru data7 !get out
+bru data6 !start by looking for a carriage return
+sxg 0 !convert number in group 0
+ldx zero,3 !count characters accumulated
+data1: lda l,2 !look at next character
+cab n59 !check for comma
+bru *+2
+bru data2
+sta flta,3 !save for flt routine
+lda xr02 !check for end of line
+inx 1,2
+cab endl
+bru *+3
+bru data3
+bru data3
+inx 1,3
+bxh 16,3 !no more than 16 char per number
+bru data4 !illegal constant
+bru data1 !accumulate another character
+data2: inx 1,2 !enter after comma
+lda xr03 !skip cosecutive commas
+bze
+bru data1
+sub  one !set up character count for flt
+sta fltn
+bru data5
+data3: stx fltn,3 !entered at end of line
+data5: spb flt,3 !go convert number to nflpoint
+bru data4 !error return
+sxg 1 !get back to pointers
+fst d,2 !get rid of converted number
+inx 2,0
+inx 2,2
+data6: sxg 0
+lda l,2 !check for carriage return
+cab n31
+bru *+2
+bru data7
+sxg 1
+bxl 128,0 !if buffer not full go pick up number
+ejt !Page: 000013
+bru data1-2
+spb dchek,1 !else get ready to write out buffer load
+lda xr13 !put record number in plist
+add sign
+sta plist+2
+lda plist+1 !flip buffers
+ext o400
+add o200
+sta plist+1
+lda n5 !call disk i/o routine
+sxg 4
+spb 8192,1
+dec plist
+set pst
+sxg 1
+inx 2,3 !bump record number
+bxh 40,3 !crump if that was the last avail record
+bru data7
+ldx zero,0 !reset buffer pointer
+bxh 256,2 !reset d index if out of range
+ldx zero,2
+bru data1-2 !buffer work all done - go get next number
+data7: sxg 1 !close out
+stx datai,0
+stx dataj,2
+stx dpnt,3
+sxg 0
+bru list1
+dchek: lda plist+3!check flag word
+bod
+bru 1,1 !everything perfect
+bze
+bru dchek !if op not completed wait for it
+sxg 4 !otherwise I must have been crumped because of
+lda n2 !too many tasks, so intermediate output to
+spb 8192,1 !let things straighten oiut
+lda n5 !then request op again
+spb 8192,1
+dec plist
+set pst
+sxg 1
+bru dchek !wait and hope
+data4: dld ermov
+mov lab2 !*illegal constant*
+bru error !go to error bookkeeping routine
+nam !compilation of def
+ejt !Page: 000014
+def: lda l,2
+sub n22
+bnz
+bru def2
+inx 1,2
+lda l,2
+sub n37
+bnz
+bru def2
+lda xr01 !back off object pointer to overwrite
+sub n3 !line number
+sta xr01
+lda exuloc
+add n50
+sta exuloc
+inx 1,2
+lda l,2
+sta 3
+lda s,3
+sub ten
+bmi
+bru def2
+sta 3
+stx deft,1
+inx 1,1
+lda zbru
+add ploc
+add 1
+sta fnt,3
+inx 2,2
+lda min
+sta t+9
+spb var,3
+bru def2
+inx 1,2
+lda l,2
+sub n14
+bnz
+bru def2
+inx 1,2
+spb arith,3
+bru def2
+ldx deft,3
+lda zbru
+add ploc
+add two
+add 1
+sta p,3
+lda exuloc
+sub n50
+sta exuloc
+bru ret
+def2: lda exuloc
+ejt !Page: 000015
+sub n50
+sta exuloc
+bru leter
+nam !dimension statments
+ejt !Page: 000016
+dim: lda xr01 !back off object pointer
+sub n3
+sta xr01
+lda l,2 !get variable to be dimensioned
+sta 3
+lda s,3
+cab n36 !check for $ array
+bru *+7 !not $
+bru *+2
+bru *+5
+lda endf !permit $ only in tester
+bze varer !illegal variable
+lda n36 !restore a reg
+sub ten
+bmi
+bru dimer
+sla 1
+sta 3
+add one
+sta t
+inx 1,2
+lda l,2
+sub n61
+bnz
+bru dimer
+inx 1,2
+spb inst,3
+bru dimer
+add one
+sta t+1
+lda l,2
+sub n59
+bze
+bru  dim2
+lda one
+sta t+2
+dim3: lda l,2
+sub n62
+bnz
+bru dimer
+inx 1,2
+ldx t,3
+lda t+1
+sla 9
+add t+2
+sta dimx,3
+lda t+2
+maq
+mpy t+1
+xaq
+sla 1
+neg !calculate new available space pointer
+ejt !Page: 000017
+add vavail
+sta vavail
+add two !compute first location of array
+sta dimx-1,3 !store in first word of pair
+sub ploc !check for blatant overflow
+bmi
+bru dimer2
+lda l,2
+sub n31
+bze
+bru list1
+sub n28
+bnz
+bru dimer
+inx 1,2
+lda l,2
+sub n31
+bze
+bru list1
+bru dim+3 !loop if no carriage return
+dim2: inx 1,2
+spb inst,3
+bru dimer
+add one
+sta t+2
+bru dim3
+dimer: bru leter
+dimer2: bru varer2
+nam !end statement
+ejt !Page: 000018
+end: lda xr01 !back off object pointer
+sub n3
+sta xr01
+ldx ir3,3 !check for end is not last
+lda u,3
+sub bleom
+bnz ender
+bxl 1,0 !in regular basic go set up for run-time
+bru run
+lda endf
+bmi run !after second end set up to run
+lmo !after first end set up to compile tester
+sta endf
+bru list11
+ender: dld ermov !end is not last
+mov lab10
+bru lister+2
+nam !for statements
+ejt !Page: 000019
+for: lda one
+sta t+9
+spb var10,3
+bru for1
+ldx nn,3
+bxh 39,3
+bru for9
+lda t+1
+sta n,3
+lda irn
+cab tent+3 !decimal 100, run time constant
+nop
+bru *+2
+bru for9
+sta n+2,3
+add irloc
+sta t+2
+add two
+sta t+3
+lda irn
+add n4
+sta irn
+lda l,2
+sub n14
+bnz
+bru for2
+inx 1,2
+spb arith,3
+bru for3
+lda zfst
+add t+1
+sta p,1
+inx 1,1
+lda l,2
+sub n51
+bnz
+bru for4
+inx 1,2
+lda l,2
+sub n38
+bnz
+bru for4
+inx 1,2
+spb arith,3
+bru for3
+lda zfst
+add t+2
+sta p,1
+inx 1,1
+lda 2
+sub endl
+bmi
+bru for5
+ejt !Page: 000020
+ldx nn,3
+for6: inx 1,3
+lda zfld
+add t+1
+sta p,1
+inx 1,1
+lda 1
+inx 1,1
+sta n,3
+inx 2,3
+stx nn,3
+bru list1
+for5: lda l,2
+sub n59
+bnz
+bru for7
+inx 1,2
+for7: lda l,2
+sub n50
+bnz
+bru for8
+inx 1,2
+lda l,2
+sub n51
+bnz
+bru for8
+inx 1,2
+lda l,2
+sub n21
+bnz
+bru for8
+inx 1,2
+lda l,2
+sub n39
+bnz
+bru for8
+inx 1,2
+spb arith,3
+bru for3
+lda l,2
+sub n31
+bnz
+bru leter
+lda zfst
+add t+3
+sta p,1
+inx 1,1
+ldx nn,3
+lda n,3
+chs
+sta n,3
+bru for6
+for1: bru leter
+for2: equ for1
+ejt !Page: 000021
+for3: equ for1
+for4: equ for1
+for8: equ for1
+for9: dld ermov
+mov lab19
+bru error
+nam !got  and gosub
+ejt !Page: 000022
+go: bxl 1,0 !in regular basic set up nop for
+bru gg1 !interruptibility
+lda ztim !in teach set of inf loop catcher
+bru gg2
+gg1: lda znop
+gg2: sta p,1
+inx 1,1
+lda l,2
+sub n50
+bze
+bru go1
+sub one
+bnz
+bru goer
+inx 1,2
+lda l,2
+sub n38
+bnz
+bru goer
+inx 1,2
+go2: lda l,2 !check for *
+cab n44
+bru *+2 !not *
+bru go21
+spb inst,3 !normal path
+bru go3
+sta t+1
+cab tent+1 !make sure tested cannot get to tester
+bru *+5 !no problem
+bru *+1
+lda endf
+bze inst8 !illegal number if used by tested program
+lda l,2
+sub n31
+bnz
+bru leter
+ldx gn,3
+lda gn
+add gloc
+add zbru
+sta p,1
+lda t+1
+sta g,3
+inx 1,3
+stx gn,3
+inx 1,1
+bru list1
+go21: bxl 1,0 !not legal in reg basic
+bru inst8
+lda endf !check for legal in teach
+bze inst8 !illegal number for tested program
+ejt !Page: 000023
+lda zbru !for trester construct *bru p*
+add ploc
+sta p,1 !place in object
+ inx 1,1
+bru list1 !process next line
+goer: bru comp2
+go3: equ goer
+go1: inx 1,2
+lda l,2
+sub n52
+inx 1,2
+bnz
+bru goer
+lda zpush !st up spb to push down return
+sta p,1
+inx 1,1
+bru go2-1
+nam !if statements
+ejt !Page: 000024
+if: bxl 1,0 !insert nop in regular basic
+bru iff1
+lda ztim !set up spb to loop topper in teach
+bru iff2
+iff1: lda znop
+iff2: sta p,1
+inx 1,1
+spb arith,3
+bru if1
+lda zfstt
+sta p,1
+inx 1,1
+lda l,2
+sub n14
+bze
+bru if30
+sub n16
+bze
+bru if31
+sub n16
+bnz
+bru if4
+inx 1,2
+lda l,2
+sub n14
+bnz
+bru if32
+lda n5
+sta ift
+bru if33
+if32: lda two
+sta ift
+bru if34
+if31: inx 1,2
+lda l,2
+sub n14
+bnz
+bru if35
+lda n3
+sta ift
+bru if33
+if35: sub n32
+bnz
+bru if36
+lda n4
+sta ift
+bru if33
+if36: lda one
+sta ift
+bru if34
+if30: lda zero
+sta ift
+if33: inx 1,2
+ejt !Page: 000025
+if34: spb arith,3
+bru if1
+lda zfstt2
+sta p,1
+inx 1,1
+lda l,2
+sub n59
+bze
+inx 1,2
+lda l,2
+sub n51
+bnz
+bru leter
+inx 1,2
+lda l,2
+sub n24
+bnz
+bru leter
+inx 1,2
+lda l,2
+sub n21
+bnz
+bru leter
+inx 1,2
+lda l,2
+sub n37
+bnz
+bru leter
+inx 1,2
+lda ift
+cab one
+bru if2
+bru if7
+cab n3
+bru if20
+bru if6
+sub n4
+bze
+bru if21
+bru if22
+if4: dld ermov
+mov lab6
+bru error
+if8: equ if4
+if1: equ if4
+if2: lda zfsut
+sta p,1
+inx 1,1
+lda zbarz
+sta p,1
+inx 1,1
+bru if5
+if6: lda zfsut
+sta p,1
+ejt !Page: 000026
+inx 1,1
+lda zbarp
+sta p,1
+inx 1,1
+bru if5
+if7: lda zfldt
+sta p,1
+inx 1,1
+lda zfsut2
+sta p,1
+inx 1,1
+lda zbarm
+sta p,1
+inx 1,1
+if5: lda l,2 !check for * after then
+cab n44
+bru *+2 !no
+bru if50 !yes
+spb inst,3 !convert line no. to binary
+bru if8
+sta t
+cab tent+1 !dont let tested prog use line no.s this big
+bru *+5 !no sweat
+bru *+1
+lda endf
+bze inst8 !illegal number for tested program
+lda l,2
+sub n31
+bnz
+bru leter
+lda gn
+sta 3
+add gloc
+add zbru
+sta p,1
+inx 1,1
+lda t
+sta g,3
+inx 1,3
+stx gn,3
+bru list1
+if50: bxl 1,0 !* not a legal address in reg basic
+bru inst8
+lda endf !check for legal occurrence in teach
+bze inst8 !illegal number for tested prog
+lda zbru !compile *bru p* for tester
+add ploc
+sta p,1 !put in object
+inx 1,1
+bru list1 !done with this line
+if20: lda zfsut
+sta p,1
+ejt !Page: 000027
+inx 1,1
+lda zbarm
+sta p,1
+inx 1,1
+bru if5
+if21: lda zfsut
+sta p,1
+inx 1,1
+lda zbarn
+sta p,1
+inx 1,1
+bru if5
+if22: lda zfldt
+sta p,1
+inx 1,1
+lda zfsut2
+sta p,1
+inx 1,1
+lda zbarp
+sta p,1
+inx 1,1
+bru if5
+nam !real time input command
+ejt !Page: 000028
+rem !routine for compiling input statements
+rem !   the following coding is generated
+rem !      spb incall,1  go to exec for input
+rem !the next 2 instructions are repeated as
+rem !  often as necessary to convert all
+rem !  input and store it.
+rem !      spb inconv,1 float the next number
+rem !      fst arg  [array elements generate
+rem !           enough coding to locate
+rem !            element.]
+rem !      spb indone,1 check to make sure that
+rem !                   all numbers input have
+rem !                     found a home.
+inp: lda zincl !set up call and initialization
+sta p,1
+lmo !set flag for store in var
+sta t+9
+inx 1,1
+inp1: lda zincon !set up spb to convert
+sta p,1
+inx 1,1
+spb var,3 !go generate store
+bru leter ! error return
+lda l,2 !check for comma
+cab n59
+bru inp2 ! might be end of line check for cr
+bru *+2
+bru leter
+inx 1,2 !there may be another firlld. check for cr
+lda l,2
+cab n31
+bru inp1 !process next variable
+bru inp3 !done
+bru inp1
+inp2: cab n31
+bru leter
+bru inp3 !done
+bru leter !error message is *incorrect format*
+inp3: lda zindn !set up spb to check for done
+sta p,1
+inx 1,1
+bru list1
+nam !let statement
+ejt !Page: 000029
+let: stx t+1,2
+inx 1,2
+lda l,2
+sub n14
+bze
+bru let1
+lda 2
+sub endl
+bpl
+bru leter
+bru let+1
+let1: inx 1,2
+spb arith,3
+bru leter
+lda l,2
+sub n31
+bnz
+bru leter
+ldx t+1,2
+lda min
+sta t+9
+spb var,3
+bru leter
+lda l,2
+sub n14
+bze
+bru list1
+leter: dld ermov
+mov lab8
+bru error
+nam !nextstatement  [see for]
+ejt !Page: 000030
+next: bxl 1,0 !do not put in loop catcher in reg basic
+bru nxt1
+lda ztim !for teach
+sta p,1
+inx 1,1
+nxt1: ldo
+sta t+9
+spb var10,3
+bru next1
+lda nn
+bze
+bru next2
+sub n3
+sta 3
+lda n,3
+sta t
+bmi
+chs
+sub t+1
+bnz
+bru next2
+stx nn,3
+inx 1,3
+stx t+2,1
+lda n,3
+sta 1
+lda zbru
+add ploc
+add n3
+add t+2
+sta p,1
+ldx t+2,1
+lda n+1,3
+add irloc
+sta t+2
+add two
+sta t+3
+lda zfld
+add t+1
+sta p,1
+inx 1,1
+lda t
+bpl
+bru *+4
+lda zfad
+add t+3
+bru *+2
+lda zfad1
+sta p,1
+inx 1,1
+lda zfst
+add t+1
+sta p,1
+ejt !Page: 000031
+inx 1,1
+lda zfsu
+add t+2
+sta p,1
+inx 1,1
+lda t
+bmi
+bru next3
+lda ztst2
+bru next4
+next3: lda t+3
+add one
+sta p,1
+inx 1,1
+lda ztst
+next4: sta p,1
+inx 1,1
+lda n,3
+add one
+add zbru
+add ploc
+sta p,1
+inx 1,1
+lda zfld
+add t+1
+sta p,1
+inx 1,1
+lda t
+bmi
+bru *+3
+lda zfsu1
+bru *+3
+lda zfsu
+add t+3
+sta p,1
+inx 1,1
+lda zfst
+add t+1
+sta p,1
+inx 1,1
+lda l,2
+sub n31
+bnz
+bru leter
+bru list1
+next1: bru leter
+next2: dld ermov
+mov lab20
+bru error
+nam !print statements
+ejt !Page: 000032
+prt: bxl 1,0 !print is always ok in reg bas
+bru prtx
+lda endf !in teach skip print in tested program
+bze list1
+prtx: lda l,2
+sub n31
+bnz
+bru prt30
+bru prt50
+prt30: lda l,2
+sub n31
+bze
+bru prt2
+sub n28
+bze
+bru prt3
+lda l,2
+sub n12
+bze
+bru prt4
+sub one
+bnz
+bru *+3
+lda zsht
+bru prt32
+spb arith,3
+bru prter
+lda zunf
+sta p,1
+inx 1,1
+bru prt30
+prt5: inx 1,1
+inx 1,2
+bru prt30
+prt2: lda 2
+sub one
+sta 2
+lda l,2
+inx 1,2
+sub n12
+bze
+bru prt50
+lda zcrt
+bru *+2
+prt50: lda zcrtb
+sta p,1
+prt6: inx 1,1
+bru list1
+prt3: lda ztab
+prt32: sta p,1
+lda 2
+sub endl
+ejt !Page: 000033
+bpl
+bru prt6
+bru prt5
+prt4: inx 1,2
+stx t+2,1 !save object pointer
+lda xr01
+bev !if present counter is even
+inx 1,1 !   increment by 4
+inx 3,1 !   otherwise increment by 3
+ldx xr01,3 !initialize xr03
+prt7: lda zero
+sta 0
+sta p,1
+prt8: lda l,2 !get next character
+sub n12
+bze
+bru prt40
+lda p,1 !pack this character into the string
+sla 6
+add l,2
+sta p,1
+bxh 2,0
+bru prt12
+inx 1,0
+inx 1,2
+bru prt8
+prt12: lda 2
+sub endl
+bpl
+bru prter1
+inx 1,1 !increment object pointer
+inx 1,2
+bru prt7
+prt10: lda xr01 !load final value of object pointer
+sub xr03 !subtract initial value
+bze
+bru empstr !if diff zero  then string is empty
+neg
+sta p-1,3 !store length of string in object
+lda xr03 !et beginning address of string
+add ploc !make address absolute
+ory p-2,3 !store in object
+lda xr01 !load next location in object
+add ploc !make absolute
+add zbru !make into a branch
+sxg 1 !i need another index group
+ldx t+2,1 !get location where we started
+sta p,1 !put branch around string in object
+sxg 0 !back to normal indexing
+lda xr03
+sub two !calculate location of code words
+add ploc
+add zdld !form load
+sta p,1 !store after string in object
+ejt !Page: 000034
+lda zlab !get *spb ylab,1*
+sta p+1,1 !sotre
+inx 2,1 !increment object pointer
+bru prt5+1 !done with this label
+empstr: ldx t+2,1!restore object pointer and exit
+bru prt5+1
+prt40: ldz !zero out location where length and no.
+sta p-2,3 !   of fills is stored
+bxl 1,0 !if no fills then skip
+bru prt10
+prt41: lda p,1
+sla 6
+add fill !fill out last word with fills
+sta p,1
+lda p-2,3 !store number of fills at b15
+add 4bit
+sta p-2,3 !store in string header
+inx 1,0
+bxh 3,0
+bru *+2
+bru prt41
+inx 1,1 !step word counter [object pointer]
+bru prt10
+prter: bru arer
+prter1: bru leter
+read: lda min
+sta readx
+lda readz
+sta p,1
+inx 1,1
+lda readz2 !fetch [fld  d,2]
+sta p,1
+inx 1,1
+lda readz3
+sta p,1
+inx 1,1
+lda min
+sta t+9
+spb var,3
+bru read1
+lda l,2
+sub n59
+bnz
+bru *+7
+inx 1,2
+lda l,2
+sub n31
+bze
+bru list1
+bru read+2
+add n28
+bze
+bru list1
+read1: bru leter
+ejt !Page: 000035
+nam !rem, ret, stop, and time
+ejt !Page: 000036
+rem: lda xr01 !back off object pointer
+sub n3
+sta xr01
+bru list1 !compile next line
+sta p-2,3
+ret: lda ldx01
+sta p,1
+inx 1,1
+lda zret
+sta p,1
+inx 1,1
+bru list1
+ret2: lda zpop !set up spb to pop up return and return
+bru ret2-3
+stop: lda xr01 !back off object pointer
+sub n3
+sta xr01
+bxl 1,0 !only 1 end in reg basic
+bru stop1
+lda endf
+bze
+bru stop2
+stop1: lda zout !set up bru output
+sta p,1
+inx 1,1
+bru list1
+stop2: ldx gn,3 !compile stop in tested as goto 10000
+lda gn
+add gloc
+add zbru
+sta p,1 !store a *bru g+gn* in object
+inx 1,1
+lda tent+1
+sta g,3 !store a 10000 in g+gn
+inx 1,3 !increment go table pointer
+stx gn,3
+bru list1 !compile next line
+rem
+timchk: spb inst,3 !convert count of seconds to binary
+bru inst8
+maq
+mpy n6 !convert to sixths
+xaq
+sta tref !set up reference
+bru list1
+nam !compile time general purpose routines
+ejt !Page: 000037
+rem !arith compiles arithmetic expressions
+arith: stx arr,0
+stx arr+1,1
+stx arr+3,3
+lda min
+sta aru
+lda zero
+sta 1
+sta arul
+sta t+9
+sta 0
+stx artp+2,2
+arth1: lda l,2
+sta 3
+lda s3,3
+cab zero
+bru arth2
+bru arth17
+cab two
+bru arth11
+bru arth12
+cab n4
+bru arth13
+bru arth15
+bru art120
+arth17: inx 1,2
+bru arth1
+arth2: lda 0
+bnz
+bru arer
+lda l,2
+sta artp
+stx artp+1,2
+lda n31
+sta l,2
+arth3: ldx artp+2,2
+bru arth4
+arth11: inx 1,0
+bru arth17
+arth12: lda 0
+sub one
+sta 0
+bmi
+bru arer
+bru arth17
+art120: inx 1,2
+lda l,2
+sub n24
+bze
+bru arth18
+sub n14
+bze
+bru arth18
+ejt !Page: 000038
+bru arth1
+arth13: lda 0
+bze
+bru arth2
+inx 1,2
+bru arth1
+arth18: lda 2
+sub one
+sta 2
+bru arth2
+arth15: inx 1,2
+lda l,2
+sub n51
+bnz
+bru arth1
+inx 1,2
+lda l,2
+sub n21
+bnz
+bru *+5
+lda 2
+sub two
+sta 2
+bru arth2
+lda 2
+sub one
+sta 2
+bru arth1
+arth4: stx artp+2,2
+lda zero
+sta artp+3
+lda l,2
+sub n61
+bze
+bru *+3
+ldx zero,0
+bru *+2
+ldx one,0
+arth21: inx 1,2
+lda l,2
+sta 3
+lda s,3
+bpl
+bru arth21
+cab nm8
+bru arth21
+bru arth24
+cab nm6
+bru arth23
+bru arth22
+bxh 1,0
+bru arth21
+add two
+bmi
+ejt !Page: 000039
+bru arth25
+lda 2
+sub one
+sta 2
+lda l,2
+sub n21
+bze
+bru *+3
+inx 1,2
+bru arth25
+lda 2
+sub one
+sta 2
+lda l,2
+sub ten
+bmi
+bru arth26
+sub n17
+bze
+bru arth26
+inx 2,2
+bru arth25
+arth26: inx 2,2
+bru arth21
+arth25: lda l,2
+sta 3
+lda s,3
+add n8
+sra 1
+sub artp+3
+bmi
+bru arth21
+add artp+3
+sta artp+3
+stx artp+4,2
+bru arth21
+arth22: inx 1,0
+bru arth21
+arth23: lda 0
+sub one
+sta 0
+bru arth21
+arth24: lda artp+3
+bze
+bru arth27
+ldx artp+4,2
+lda arul
+add one
+sta arul
+sta 3
+lda 2
+add one
+sta aru,3
+lda 3
+ejt !Page: 000040
+sla 1
+add exuloc
+sta arr+2
+lda l,2
+sta 3
+lda zero
+sub s,3
+add upbit
+sta 3
+bru q3,3
+arth27: ldx artp+2,2
+lda l,2
+sub n61
+bnz
+bru arth28
+inx 1,2
+bru arth4
+arth28: lda l,2
+sta 3
+lda s,3
+sub ten
+bmi
+bru arth29
+inx 1,2
+lda l,2
+sub n61
+bze
+bru arth6
+lda l,2
+sta 3
+lda s,3
+sub ten
+bmi
+bru arth30
+inx 2,2
+stx artp+2,2
+lda l,2
+sub n61
+bnz
+bru arer
+lda 2
+sub two
+sta 2
+bru arth40
+arth30: lda 2
+sub one
+sta 2
+spb var10,3
+bru arer
+bru arth5
+arth29: lda s,3
+add one
+bnz
+bru arth31
+ejt !Page: 000041
+inx 1,2
+stx artp+2,2
+bru arth27+1
+arth31: add one
+bze
+bru arth32
+spb con,3
+bru arer
+bru arth5
+arth32: inx 1,2
+lda zar
+sta arp
+inx 1,1
+lda zar+1
+sta arp,1
+inx 1,1
+lda zar+2
+sta arp,1
+inx 1,1
+bru arth4
+arth33: lda arr+2
+add zspb1
+sta arp,1
+inx 1,1
+bru arth3
+q3: bru *+1
+bru q31
+bru q32
+bru q33
+bru q34
+bru q35
+q31: lda arr+2
+add zfad
+q31a: sta arp,1
+inx 1,1
+lda n31
+sta l,2
+bru arth3
+q32: lda arr+2
+add zfsu
+bru q31a
+q34: lda arr+2
+add zfdv
+sta arp,1
+inx 1,1
+lda zcqx !$$$$$ in 225 set up xaq, maq a [backwards]
+bru q31a
+q33: lda arr+2
+add zfmp
+sta arp,1
+inx 1,1
+lda zar+3
+bru q31a
+q35: lda powspb !q35 handles the up arrow operator
+ejt !Page: 000042
+rem !a**b is compiled as a [fld a], maq a,
+rem !     fld B, spb power 1
+sta arp,1
+lda zfld
+add arr+2
+sta arp+1,1
+lda zar+3 !maqa
+inx 2,1
+bru q31a
+arer: ldx arr,0
+ldx arr+1,1
+ldx arr+3,3
+dld ermov
+mov lab3
+bru error
+arth5: ldx arul,3
+lda l,2
+sub n62
+bnz
+bru *+3
+inx 1,2
+bru *-5
+add n31
+bnz
+bru arer
+arth50: lda aru,3
+bmi
+bru arth51
+sta 2
+lda min
+sta aru,3
+lda 3
+sla 1
+add exuloc
+add zfst
+sta arp,1
+inx 1,1
+bru arth4
+arth51: lda 3
+sub one
+sta 3
+bpl
+bru arth50
+lda 1
+sub one
+sta 3
+ldx arr,0
+ldx arr+1,1
+arth52: lda arp,3
+sta p,1
+inx 1,1
+lda 3
+sub one
+sta 3
+ejt !Page: 000043
+bpl
+bru arth52
+ldx arr+3,3
+ldx artp+1,2
+lda artp
+sta l,2
+bru 2,3
+arth6: lda s,3
+sub ten
+cab n26 !check for $
+bru arth6b
+bru *+2 !yes
+bru arth6b
+lda tflag !$ always illegal in regular basic
+bze
+bru var13
+lda  endf
+bze var13 !illegal variable for testyed program
+lda n26 !restore areg
+arth6b: sla 1 !multiply by 2
+sta 3
+add dimloc
+sta artp+5
+lda dimx,3
+bmi
+bru arth60
+inx 1,3
+lda dimx,3
+ext mar
+sub one
+bze
+bru arth61
+ldx zero,0
+arth62: lda l,2
+sub n61
+bnz
+bru arth63
+inx 1,0
+arth65: inx 1,2
+bru arth62
+arth63: sub one
+bnz
+bru arth64
+lda 0
+sub one
+sta 0
+bru arth65
+arth64: add n3
+bze
+bru arth66
+add n28
+bze
+bru arer
+ejt !Page: 000044
+bru arth65
+arth66: lda 0
+sub one
+bnz
+bru arth65
+arth67: lda n31
+sta l,2
+lda arul
+add one
+sta arul
+sta 3
+lda 2
+add one
+sta aru,3
+lda 3
+sla 1
+add exuloc
+sta arr+2
+lda zar+7
+sta arp,1
+inx 1,1
+lda artp+5
+add zdld
+sta arp,1
+inx 1,1
+lda zar+10
+sta arp,1
+inx 1,1
+lda arr+2
+add zdld
+sta arp,1
+bru arth68
+arth61: lda zar+6
+sta arp,1
+inx 1,1
+lda artp+5
+add zdld
+sta arp,1
+arth68: inx 1,1
+lda zar+11
+sta arp,1
+inx 1,1
+lda artp+2
+add two
+sta 2
+bru arth4
+arth60: ldx zero,0
+arth70: lda l,2
+sub n62
+bnz
+bru arth71
+lda 0
+sub one
+sta 0
+ejt !Page: 000045
+bze
+bru arth72
+inx 1,2
+bru arth70
+arth71: add one
+bnz
+bru arth73
+inx 1,0
+arth74: inx 1,2
+bru arth70
+arth73: add two
+bnz
+bru arth75
+lda 0
+sub one
+bnz
+bru arth75
+lda n11
+sla 9
+add n11
+sta dimx+1,3 !store subscript info
+lda vavail !update vavail
+sub n242
+sta vavail
+add two !compute location of array
+sta dimx,3
+lda vlast !check for blatant overflow
+sub vavail
+bpl
+bru arer1
+bru arth67
+arth75: lda l,2
+sub n31
+bze
+bru arer
+bru arth74
+arth72: lda n11
+sla 9
+add one
+sta dimx+1,3 !store subscript info
+lda vavail !compute new vavail
+sub n22
+sta vavail !adjust available space pointer
+add two !compute location of beginning of array
+sta dimx,3 !sotre in array table
+lda vlast !check for blatant overflow
+sub vavail
+bpl arer
+bru arth61
+arer1: equ arer
+arth40: inx 1,2
+lda l,2
+sta 3
+ejt !Page: 000046
+lda s,3
+sub ten
+bmi
+bru arer
+lda 2
+sub two
+sta 2
+lda l,2
+sub n17
+bze
+bru q2a
+sub two
+bze
+bru q2c
+sub two
+bze
+bru q2e
+sub one
+bze
+bru q2f
+sub n3
+bze
+bru q2i
+sub ten
+bze
+bru q2l
+sub n6
+bze
+bru q2r
+sub ten
+bze
+bru q2t
+add one
+bze
+bru q2s
+bru arer
+q2a: inx 1,2
+lda l,2
+sub n18
+bze
+bru *+3
+lda qatn
+bru q2ex
+lda qabs
+q2ex: sta arr+2
+bru arth33
+q2c: lda qcos
+bru q2ex
+q2e: lda qexp
+bru q2ex
+q2f: inx 2,2
+lda l,2
+sta 3
+lda s,3
+ejt !Page: 000047
+sub ten
+bmi
+bru arer
+sta 3
+lda fnt,3
+bnz
+bru *+3
+lda min
+sta fnt,3
+lda 3
+add fntloc
+add zspb0
+sta  arp,1
+inx 1,1
+bru arth3
+q2i: lda qint
+bru q2ex
+q2l: lda qlog
+bru q2ex
+q2r: lda qrnd
+bru q2ex
+q2s: inx 1,2
+lda l,2
+sub n25
+bze
+bru *+3
+lda qsqr
+bru q2ex
+lda qsin
+bru q2ex
+q2t: lda qtan
+bru q2ex
+ejt !Page: 000048
+rem !con uses flt to convert constants to
+rem !   normalized floating point and
+rem !   saves them in the exl region
+rem !     latest change checks to avoid duplicatio
+rem !   of constants
+con: stx t+8,3
+ldx zero,3
+con2: lda l,2
+sub ten
+bmi
+bru con1
+sub n17
+bze
+bru con1
+lda l,2
+sub n21
+bze
+bru con3
+bru con5
+con4: lda 2
+sub one
+sta 2
+con5: lda 3
+bze
+bru arer
+sub one
+sta fltn
+spb flt,3
+bru con6
+ldx exln,3 !load xr03 with constant table pointer
+stx cxtem,3 !save last location of table
+fst exl,3 !store constant at end of table
+dld exl,3 !load target number
+ldx zero,3 !reset index
+con5a: dcb exl,3 !search table
+bru *+2
+bru conhit !under present system negative constants
+rem !   are never stored in the exl table.
+rem !   when this is fixed the above bru conhit
+rem !   should be changed to a bru*+3 to check
+rem !   the sign of the mantissa [damn dcb]
+inx 2,3 !not found
+bru con5a
+dld exl,3 !load possible hit
+xaq
+bpl !compare signs with target
+bru *+4
+bar bpl,7
+bru con5b !false alarm
+bru *+3 !positive find
+bar bmi,7
+bru con5b !false alarm
+conhit: lda xr03 !load location of hit
+ejt !Page: 000049
+sub cxtem !compare with last location of table
+bnz *+5 !not necessary to increment pointer
+lda exln !increment pointer
+add two
+sta exln
+lda xr03 !generate floating load
+add lloc
+add zfld
+sta arp,1 !store in arith compiling area
+inx 1,1 !step arith object pointer
+ldx t+8,3 !resotre exit
+bru 2,3 !exit
+con5b: fst ctem !restore arg to ax
+dld ctem
+inx 2,3
+bru con5a
+con6: ldx t+8,3
+bru 1,3
+con1: lda l,2
+sta flta,3
+inx 1,2
+inx 1,3
+bru con2
+con3: inx 1,2
+lda l,2
+sub n40
+bze
+bru con4
+lda n21
+sta flta,3
+inx 1,3
+con8: lda l,2
+sta flta,3
+inx 1,2
+inx 1,3
+lda l,2
+sub ten
+bmi
+bru con8
+bru con5
+ejt !Page: 000050
+rem !con converts bcd numbers to nflpoint
+flt: dld 0
+dst fltr
+dld 2
+dst fltr+2
+rin
+lda zero
+sta 1
+sta 2
+sta 3
+sta fltc
+sta fltd
+sta flts
+sta fltx
+sta fltx+1
+lda flta
+sub n16
+bze
+bru flt2
+sub n16
+bnz
+bru flt3
+lda min
+sta flts
+flt2: dld fltm
+mov flta+1
+lda fltn
+sub one
+sta fltn
+flt3: lda flta,3
+sub ten
+bmi
+bru flt4
+sub n17
+bnz
+bru flt10
+lda fltd
+bnz
+bru flter
+lda min
+sta fltd
+flt6: lda 3
+sub fltn
+bpl
+bru flt10
+inx 1,3
+bru flt3
+flt4: inx 1,2
+bxh 10,2
+bru flter
+lda fltd
+bmi
+inx 1,1
+ejt !Page: 000051
+dld fltx
+sld 2
+dad fltx
+sld 1
+dst fltx
+lda flta,3
+maq
+dad fltx
+dst fltx
+bru flt6
+flt10: lda zero
+sub 1
+sta fltc
+dld fltx
+bze
+bru flt8
+dno 19
+sta fltx
+lda 0
+add n19
+sta 0
+lda fltx
+flt9: srd 8
+dst fltx
+lda 0
+sla 11
+add fltx
+sta fltx
+bru flt5
+flt8: xaq
+dno 19
+bru flt9
+flter: dld fltr
+dst 0
+fld fltr+2
+dst 2
+rin
+set trpmode
+bru 1,3
+flt5: nop
+lda fltc
+bnz
+bru flt80
+lda 3
+sub fltn
+bpl
+bru fltex
+flt82: lda flta,3
+sub n21
+bnz
+bru flter
+inx 1,3
+bru flt20
+fltex: lda flts
+ejt !Page: 000052
