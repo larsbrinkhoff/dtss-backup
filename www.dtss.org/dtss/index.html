@@ -1,0 +1,79 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head><title>
+	Welcome Page
+</title></head>
+<body>
+	<form name="aspnetForm" method="post" action="./" id="aspnetForm">
+<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="/wEPDwUKMjAyMDU0NTIxM2QYAQUeX19Db250cm9sc1JlcXVpcmVQb3N0QmFja0tleV9fFgIFGGN0bDAwJExvZ2luU3RhdHVzMSRjdGwwMQUYY3RsMDAkTG9naW5TdGF0dXMxJGN0bDAzLjGcsZCNN/zm3Mq2hGDr7KSkT2ZK+twlDXidkJzRBJU=" />
+
+<input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="6AE3DA43" />
+<input type="hidden" name="__EVENTVALIDATION" id="__EVENTVALIDATION" value="/wEdAAJojWKqTT+wpBM7QQba0l7YyhlHDN25acBMNcp5pxKYrldjMA2emECvijUZa/+weegWjwW+QP2lFdHY292nDz0P" />
+		<div>
+			<table id="ctl00_Table1" align="Center" border="0" bgcolor="Green" width="100%">
+	<tr id="ctl00_TableRow1">
+		<td id="ctl00_TableCell1" align="left" valign="middle" nowrap="nowrap"><font face="Lucida Sans" color="White" size="6"><b>DTSS Emulator</b></font></td><td id="ctl00_TableCell5" align="right" valign="middle" nowrap="nowrap"><font color="White" size="4"><b><a href="Help/HelpMaster.htm" id="ctl00_A2" target="_blank" style="color: 
+								White; font-weight: bold">
+								<span
+									style="color: White; font-weight: bold">Help</span>
+									</a></b></font></td><td id="ctl00_TableCell2" align="right"><font color="White"><a id="ctl00_LoginStatus1" href="javascript:__doPostBack(&#39;ctl00$LoginStatus1$ctl02&#39;,&#39;&#39;)"><b><font color="White">Login</font></b></a>
+						&nbsp;
+						</font></td>
+	</tr><tr id="ctl00_TableRow2">
+		<td id="ctl00_TableCell3" align="left" valign="middle" nowrap="nowrap"><font color="White" size="5"><b>Version 1.0</b></font></td><td id="ctl00_TableCell4" align="right"><font color="White">
+						&nbsp;
+						<span style="font-weight:bold">Users:&nbsp;
+                            0
+						</span>
+						&nbsp;
+						<span style="font-weight:bold">
+						Thursday, January 11, 2024
+						</span>
+					</font></td>
+	</tr>
+</table>
+			<br />
+			<br />
+			
+<center>
+	<span style="font-size: 14pt">
+		<span id="ctl00_ContentPlaceHolder1_Label1" style="display:inline-block;"><b>Welcome to the DTSS Emulator, developed by John S. McGeachie '65.
+		This program emulates the computer time-sharing system
+		created at Dartmouth College in 1964 and used by students and faculty until 1967.</b></span>
+		</span>
+</center>
+	<center>
+		&nbsp;</center>
+	<center>
+		<span style="font-size: 16pt">
+			</span>
+		<img id="ctl00_ContentPlaceHolder1_Image1" src="Login/Images/DTSS_Emulator.jpg" border="0" />&nbsp;</center>
+			<span style="font-size: 13pt">
+		DTSS was designed by Dartmouth professors John G. Kemeny and Thomas E. Kurtz. John Kemeny wrote the
+		Basic compiler; undergraduate students wrote the operating systems for the DN-30 and GE-235 computers,
+		as well as most of the other system components.<br /><br />
+		Development of the emulator has been driven by Steve Hobbs '67, Tom Kurtz, and me. Steve and Tom
+		tracked down listings of the two operating systems, Basic, and Algol. Steve scanned them so that we
+		could easily access them. Tom has written a stand-alone emulator in True Basic, and I have benefited
+		from his experience. Nicolás Alvarez helped me solve a problem with registering new users.
+        <br /><br />
+		This web-based emulator has two components: a java-based application that emulates the GE-235
+		<em>hardware</em> in minute detail, and an asp.net/C# application that generally emulates the DN-30
+		<em>executive</em>. The two emulators communicate via sockets: one to emulate the Computer Interface Unit
+		(CIU) that linked the DN-30 and GE-235 computers, and another to emulate the Disc Storage Unit (DSU) that
+		was shared between the two computers.<br /><br />
+		The GE-235 emulator runs an August 1965 version of the GE-235 executive and a February 1965 version of Basic.
+		Running on a reasonably fast PC, it executes GE-235 instructions at roughly 100 times the speed of the
+		original hardware. We have an April 1966 version of Algol, which I have not yet tested. It is on my rather
+		long to-do list. So is adding a HELP facility. 
+		<br /><br />
+		After logging in (you will need to register if you have not done so previously), click on the
+		<strong>ProgramEntry</strong> link at the top right of the page to get started. Note: the LIB command
+		(a newcomer) provides a list of library programs in the current language. There is no BYE command -- just
+		close your browser.</span>
+
+		</div>
+	</form>
+</body>
+</html>
