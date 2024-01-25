@@ -1,0 +1,88 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<link rel="stylesheet" type="text/css" href="../style50yrs.css" title="Default Style Sheet">
+<script type="text/javascript" src="../functions.js"></script><!-- Shared javascript -->
+
+<title>The Early Years of Academic Computing</title>
+</head>
+
+<body>
+	
+<div class = "header" id = "header-text">
+	<script type="text/javascript">writeHeader();</script>
+</div>
+
+<div class = "header-navigation" id="navbar">
+   <script>writeMenu()</script>
+</div>
+
+<div class = "main">
+<h1>Timesharing at Dartmouth</h1>
+
+<h2>The Dartmouth Time Sharing System</h2>
+
+<p>The founders of computing at Dartmouth were two mathematicians, Tom Kurtz and John Kemeny.  With help from a team of undergraduates, they created the Basic programming language and the Dartmouth Time Sharing System (DTSS).  Kemeny later became President of Dartmouth and Kurtz was the first director of the Kiewit computing center.  Under his leadership, Kiewit gained a reputation for outstanding service to the academic community.</p>
+
+<p>I was on sabbatical at Dartmouth in 1976 to 77, and from 1978 to 1985 I was head of computing, with various job titles.  When I came to Dartmouth, the Kiewit technical group was very strong.  It is hard to single out individuals, but Stan Dunten (networking) and Phil Koch (operating systems and programming languages)  were outstanding.  I was fortunate to inherit a smooth running computer center.  The key people were Tom Byrne, who ran the business side, and Punch Taylor, who had overall responsibility for  the technical work.</p>
+
+<p>DTSS reached its maturity during these years and it is interesting to compare the services that it provided with the networks of personal computers that swept universities soon afterwards.  From a modern viewpoint the most surprising feature was that the entire software was developed at Dartmouth.  From the device drivers to the applications programs everything was written locally, either at Dartmouth or by DTSS, Inc., the commercial spin off.  Most of the original system was written by undergraduates, and much of the maintenance was still done by student system programmers.  </p>
+
+<div class ="panel">
+    <img src ="../images/Teletype.jpg"> 
+ <p class="caption">A teletype terminal</p>
+ <p>Early timesharing used hardcopy terminals of the type that were used for sending telegrams.  They are often called "teletype" terminals, the name of one popular model, but they actually came from several vendors.  They were replaced by the much superior Decwriters in the mid 1970s.  Terminals cost between $1,000 and $1,500.</p>
+ <p class="acknowledge">Photograph from Wikipedia</p>
+</div>
+
+<p>DTSS began at a time when almost all academic computing used programs written by faculty and students for their own work.  For this reason, the  operating environment was tailored to compile and run small programs very quickly.  Dartmouth provided excellent compilers for PL/1 and for Basic, which reached maturity during the late 1970s. To support up to 200 simultaneous users, the timesharing monitor enforced strict limits on each user's CPU usage, memory, and disk storage, and the system used these resources very efficiently.  For example, in the days before virtual memory, the runtime environment solved the problem of running large programs by automatically swapping procedures within a user's memory allocation.</p>  
+
+<p>In 1978, DTSS was running on a Honeywell 66/40 computer, the successor to the GE 625 and 635 computers on which it was developed.  The hardware was unusual for a third generation mainframe computer in that it had two processors, each consisting of the central processing unit, the memory, and a multiplexor.  Each of these six units had a large cabinet, filled with racks of logic boards.  Hardware engineers were in constant attendance.  The performance of each processor was about 1 million instructions per second, and the total memory was 2 megabytes.  There were about ten disk drives, each the size of a small washing machine.  The total disk capacity eventually reached about one gigabyte, which served the entire university.  The disks were unreliable and back-up copies of the files were stored on magnetic tape.  A full back up was made once a week with a daily incremental back up.</p> 
+
+<p>The communications architecture was an important reason that DTSS was able to support so many users.  All terminal traffic was handled by two Honeywell 716 minicomputers that acted as terminal concentrators.  To minimize the number of interruptions, they collected keystrokes and sent them to the central computers in batches, usually one line at a time. </p>   
+
+<p>The standard terminal was a Decwriter.  This was a hard copy device that ran at 300 bits per second over an ordinary telephone line.  For graphics, we used the Tektronix 4010 family of terminals.  These terminals painted a sequence of vectors on the screen that could be deleted only by wiping the entire screen blank.  During my sabbatical year I wrote a graphical extension to the Basic system to display vector graphics.  A variant of the syntax was incorporated into later versions of the Basic compiler.</p>
+
+<p>Editing is a problem on a hard copy terminal.  The Basic programming language originally solved this problem by giving a line number to each statement and encouraging users to simply retype a line if it needed to be changed.  More advanced users were provided with context editors, which made substitutions based on pattern matching.</p>
+
+<p>Video terminals such as Digital's VT 52 and VT 100 came into widespread use about 1980, usually running at 1,200 bits per second.  They were dumb terminals with no internal processing.  When they were used for full screen editing, each keystroke had to be processed before writing on the screen.  If this processing was on the central computer, as was done by most commercial companies, the transmission and processing times could lead to a frustrating delay after each keystroke.  At Dartmouth, we solved the problem of screen editing by building our own terminal, the Avatar, by adding a Z80 microprocessor and cache memory to a standard video terminal.  In combination with a special editor on the central computer, the Reactor, this provided an excellent screen editor.  In typical Dartmouth style, the hardware and software were both developed locally with Jim Perry as the leader.  After I left Dartmouth, the Avatar software was ported to Macintosh and IBM personal computers, and the Redactor was ported to Digital's VAX/VMS.</p>
+
+<p>As I write this description thirty five years later, the system sounds primitive in the extreme, but many people considered that Dartmouth provided the best academic computing of any university in the world.  The university was justifiably proud of its achievements.  The technical staff was outstanding and Dartmouth was the benchmark for supporting users who had no interest in technicalities.</p>
+
+<h2>Computers in education</h2>
+
+<p>DTSS and Basic were simple and easy to use.  Basic was never intended as a language for large programs, but was excellent for writing programs of a few hundred lines.  Long before I arrived, the mathematics department passed a resolution that every student who took any mathematics course must learn to write simple programs.  The department explicitly excused the faculty from this requirement, but many faculty members enjoyed writing programs to support their teaching and research.</p>
+
+<p>These programs were made available through public libraries.  There were libraries for specific courses and for disciplines such as statistics.  I used to teach a course in computer graphics and had a course library with demonstration programs on topics such as splines and perspective.  Other libraries included utilities such as text formatting and Dartmouth had a fine collection of games.  Kemeny wrote a popular baseball simulation based on the 1955 World Series triumph of the Brooklyn Dodgers.  In anticipation of the modern open source movement, these programs were always stored as source code and continually upgraded by colleagues.  Whenever we taught a course, it was a matter of pride to extend and improve the programs in the course library.</p>
+
+<p>Dartmouth was unusual in that computing was seen primarily as a service to education and made no charges for the use of the computer.  Funding followed what was called "the library model".  Faculty and students were encouraged to use the computer.  The center had an annual budget from the university and supplied a range of services at no cost to the user.  I spent seven years successfully postponing demands from the central administration that we should introduce a charging scheme.</p>
+
+<p>Kemeny and Kurtz's great achievement was to allow everybody to be a programmer.  Modern computers provide a magnificent set of features, but modern user interfaces and networked communication are much more difficult to program.  Many of today's faculty are skilled computer users, but it is much less usual to write a simple program the evening before a class.</p>
+
+<h2>The limitations of timesharing</h2>
+
+<p>Every computer system is a compromise.  Flexibility and generality come at the price of simplicity.  General purpose systems, such as IBM's MVS and Microsoft's Windows, are inevitably cumbersome.  Timesharing's aim was to give users the illusion that they each had sole use of a powerful computer and for most users DTSS did this well.  It was responsive and easy to use.  Even under heavy load it allocated resources so efficiently that we never had to ration computing resources or charge users.  But these virtues came at a price. Two important groups of academic users were poorly served.</p> 
+
+<p>Firstly, there was little support for the number crunching that is so important in science and engineering.  DTSS's Fortran compiler was an afterthought, and there was no way to allocate large amounts of computer time to individual researchers, even if they had grant funds to pay for it.   At a liberal arts university this was a serious problem and at a research university it would have been a fatal flaw.  Many universities where researchers and adminstrative computing shared an IBM mainframe never adopted central timesharing.</p>
+
+<p>Secondly, every program had to be written locally.  Dartmouth built up an impressive public library, but academic computing was steadily moving away from program development to large commercial packages.  The inability to run packages such as SPSS for statistics was one of the forces that led Dartmouth away from its own system.</p> 
+<p>For a while, Dartmouth addressed these two problems by augmenting the central timesharing system with minicomputers, which were used for number crunching and to run software packages, but minicomputers could not solve the fundamental weakness of timesharing, which was capacity.  Timesharing was swamped by its own success.  Every year more and more users wanted to run more complicated programs that required more terminals, more processor cycles, more memory, and more disk space.  The central service could never keep up.  Even the best systems slowed down when heavily loaded and made mockery of the illusion that the user had sole use of the computer. </p>
+
+<p>When personal computers arrived there was no illusion and once powerful workstations became available timesharing was doomed.  The capacity problems were solved by everybody buying their own computers.  Timesharing systems, such as DTSS, became file servers and email hubs.  Eventually they were replaced by server farms.  But for twenty years timesharing was the leading edge of academic computing</p>
+
+</div>
+
+<div class = "footer" id = "footer-text">
+	<script type="text/javascript">writeFooter();</script>
+</div>
+	
+</body>
+
+</html>
+
+
+

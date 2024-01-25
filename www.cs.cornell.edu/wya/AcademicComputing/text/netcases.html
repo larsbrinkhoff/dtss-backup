@@ -1,0 +1,129 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<link rel="stylesheet" type="text/css" href="../style50yrs.css" title="Default Style Sheet">
+<script type="text/javascript" src="../functions.js"></script><!-- Shared javascript -->
+
+<title>The Early Years of Academic Computing</title>
+</head>
+
+<body>
+	
+<div class = "header" id = "header-text">
+	<script type="text/javascript">writeHeader();</script>
+</div>
+
+<div class = "header-navigation" id="navbar">
+   <script>writeMenu()</script>
+</div>
+	
+<div class = "main">
+  <h1>Case Studies: Dartmouth and Carnegie Mellon</h1>
+	
+<h2>The Kiewit Network at Dartmouth</h2>
+
+<p>Dartmouth can claim to have had the first complete campus network, the Kiewit Network. The architect of the network was Stan Dunten, who had earlier been the developer of the communications for the Dartmouth Time Sharing System (DTSS) and before that a major contributor to MIT's Multics.  His concept was to create a network of minicomputers dedicated to communications, interconnected by high speed links.  He called them nodes.  The nodes would be used as terminal concentrators, as routers to connect computers together, or as protocol converters.  Earlier, when the university had been laying coaxial cable for television, he had arranged for a second cable to be pulled for networking.  This cable was never actually used for its purpose but its existence was an important stimulus.</p>
+
+<p>The first two nodes were the Honeywell 716 minicomputers that were the front ends for the central DTSS computer.  They acted as terminal concentrators and provided front end services such as buffering lines of input before sending them to the central computer.  </p>
+
+<p>During the 1970s, Dartmouth sold time on the DTSS computer to colleges that were too small to have their own computers.   The first extension of the network was to support these remote users.  The front end software was ported to Prime 200 minicomputers, which had the same instruction set as the 716s.  They were deployed as terminal concentrators at several colleges, with the  first being installed at the US Coast Guard Academy in 1977. These nodes were linked to Dartmouth over leased telephone lines using HDLC, a synchronous data link protocol.</p>
+
+<p>In fall 1978 the decision was made to build a new set of nodes, using 16-bit minicomputers from New England Digital. Eventually about 100 of the New England Digital minicomputers were deployed on and around campus.  The original development team was Stan Dunten and David Pearson, who were later joined by Rich Brown.  Each node could support 56 asynchronous terminal ports at 9,600 bits/second, or 12 HDLC synchronous interface at speeds up to 56Kbits/sec. An important feature was a mechanism to reload a node automatically from a master node.  After a failure, a dump of the node's memory was stored on DTSS and the master node sent out a new version of the network software.  The master node also performed routine monitoring and individual nodes could be accessed remotely for trouble shooting.</p>
+
+<p>The first new service was to allow any terminal or personal computer emulating a terminal to connect to any computer on the network. In 1981 the university library connected its first experimental online catalog to the network, which was immediately accessible from every terminal at Dartmouth. The production version of the catalog ran on a Digital VAX computer.  Other computers that were soon attached to the network included a variety of minicomputers, mainly from Prime and Digital. The first protocol gateway provided support for X.25, used for off-campus connections to the commercial Telenet service and later to the computer science network, CSnet.</p>
+
+<h3>Wiring the buildings</h3>
+
+<p>Before the Kiewit Network was built, terminals were connected to DTSS over standard telephone lines using acoustic couplers.  Dedicated hard-wires were run where the terminals were close to a front end computer, such as in the computer center or at the Coast Guard Academy.  As the New England Digital nodes were deployed, the number of hard-wired terminals increased and as funds became available the campus buildings were wired. The funding model was simple.  Hundreds of people around the university were accustomed to paying $16 per month for a 300 bits/second acoustic coupler and a special telephone line.  As the hard-wired network was gradually installed, users paid $15 a per month for a hard-wired connection at 2,400 bits/second (later 9,600 bits/second) and the funds were used for the next stage of expansion.</p>
+
+<p>The Dartmouth campus is crisscrossed by roads and in those days the telephone company had a monopoly on transmission lines that crossed the roads.  For many years the high prices charged by the telephone company forced the network to use low speed links between the nodes.  At a time when Carnegie Mellon, with no roads across its central campus, was laying its own fiber optics cables, many of Dartmouth's links were only 19.2kKbits/second.  Yet even with these constraints the performance was excellent for the primary purpose of linking terminals and personal computers to central computers.</p>
+
+<h3>The Macintosh network</h3>
+
+<p>In 1983, Dartmouth decided to urge all freshmen to buy Macintosh computers.  This required a rapid extension of the network to support Macintoshes and to wire the dormitories.  Before this expansion, the university's central administration had essentially ignored the development of the Kiewit Network.  It began as an internal project of the computer center, appeared on no public plan, and never had a formal budget.  Now, the university recognized its importance and asked the Pew Foundation for the funds to extend the network to the dormitories. With a generous grant from the foundation, the network was fully deployed by fall 1984, with hard-wired ports in every room including the dormitories.  The nodes were configured so that each hardwired connection could be used for either AppleTalk or as an asynchronous terminal port.  By default the dormitory ports were set to AppleTalk, one connection per student, but could be changed on request. </p>  
+
+<p>Originally communication between the nodes used the unique DTSS protocol, but it became clear that something more modern was needed.  TCP/IP was rejected for a variety of reasons.  The overhead was too high for the slower network links (some off-campus nodes were 2,400 bits/second) and there was no TCP/IP support for the major computers on campus.  Before the Internet Domain Name Service was introduced in 1983, whenever a machine was added to a TCP/IP network a system administrator had to update all the name tables.  Dartmouth was considering a stripped down version of TCP/IP when, in spring 1984, Apple showed us the draft protocols for what became AppleTalk.  These protocols were very similar to our own design, being packet switched but simpler than TCP/IP.  The networking team decided to adopt Apple's protocols and persuaded them to make some changes, notably in the size of the address field.  These protocols were adopted for the internal links of the network and the Kiewit Network became a large AppleTalk network in 1984 with the nodes acting as gateways for other protocols.</p>
+
+<div class ="panel">
+    <img src ="../images/DartConnections.jpg"> 
+    <p class="caption">Using a Macintosh as a terminal</p>
+    
+ <p>This photograph shows five connections from a Macintosh to timeshared computers.  Terminal emulation was an important service during the transition from timesharing to personal computing.</p>
+ <p class="acknowledge">Screen image by Rich Brown</p>
+  
+</div>
+
+<p>There was perilously little time to complete the changeover before the freshmen arrived in fall 1984. It would not have been possible without special support from Apple.  The company helped in two vital ways.  The first began as a courtesy call by Martin Haeberli who had just completed MacTerminal, the terminal emulator for the Macintosh.  For a vital few days he became a member of the Kiewit team.  The second was a personal intervention from Steve Jobs.  The isolation transformers that protect AppleTalk devices from power surges were in very short supply. Jobs made sure that we were supplied, even before the Apple developers, rather than risk deploying a thousand machines without protection from lighting strikes.  AppleTalk was officially released in 1985, six months after it was in production at Dartmouth.</p> 
+
+<p>The adoption of AppleTalk for the campus network had a benefit that nobody fully anticipated.  Apple rapidly developed a fine array of network services, such as file servers and shared printers.  As these were released they immediately became available to the entire campus. Thus the Macintosh computers came to have three functions, free-standing personal computers, terminals to timeshared computers including the library, and members of a rich distributed environment.</p>
+
+<h3>Later developments</h3>
+
+<p>By building its own nodes, Dartmouth was able to offer the campus a convenient, low-cost network before commercial components became available.  It served its purpose well and was able to expand incrementally as the demand grew for extensions.</p>
+
+<p>Even as the AppleTalk network was being deployed, other systems were growing in importance.  Scientists and engineers acquired Unix workstations.  The business school was using IBM Personal Computers.  Ethernet and TCP/IP became established as the universal networking standards and eventually both Dartmouth and Apple moved away from AppleTalk.  During the 1990s Dartmouth steadily replaced and upgraded all the original components.  1n 1991 the connections between the building were upgraded to 10Mbits/second and today they are fiber optics links at 10Gbits/second.  The building wiring was steadily replaced and by 1998 all the network outlets had been converted to Ethernet.  In 2001, Dartmouth was the first campus to install a comprehensive wireless network.  The last New England Digital nodes was retired many years ago, but the basic architecture that Stan Dunten designed in 1978 has stood the test of time.</p>
+
+<h2>The Andrew Network at Carnegie Mellon</h2>
+
+<p>As part of the Andrew project at Carnegie Mellon, a state-of-the-art campus network was deployed between 1985 and 1988.  By designing this network somewhat later than Dartmouth, Carnegie Mellon was able to build a higher performance network, but had to accommodate the independent networks that had been installed on campus.  The most important of these were a large terminal network using commercial switches, several networks running Decnet over Ethernet, and the Computer Science department's large TCP/IP network.  Early in the decade, a working group convened by Howard Wactlar  persuaded  the university  to accept the TCP/IP  protocols  for interdepartmental communications, but the departmental networks were much too important to be abandoned.</p>
+
+<p>Early Ethernet posed problems for a campus network.  The network management tools were primitive and large Ethernets had a reputation for failing unpredictably when components from different manufacturers were used together.  To manage the load, the typical configuration was to divide a large Ethernet into subnets with bridges between them which transmitted only those packets that were addressed to another subnet.  The bridges operated at the datalink protocol layer so that higher level protocols such as Decnet and TCP/IP could use the same physical network.  This worked well if most traffic was within a subnet, but the Andrew project chose a system architecture that relied on very high performance connections between workstations anywhere on campus and a large central file system, the Andrew File System.</p>
+
+<p>IBM created Token Ring as an alternative to Ethernet.  Technically it had several advantages, including better network management and being designed from the start to run over shielded twisted pair, rather then the coaxial cable in the original Ethernet specification.  With the benefit of hindsight we now know that Ethernet was able to overcome its limitations and soon became the dominant standard for campus networks, but at the time IBM Token Ring looked very promising.  Since IBM money was paying for much of the Andrew project, the network needed to support Token Ring.</p>
+
+<p>The Andrew Network therefore had to support both Ethernet and Token Ring at the datalink level.  Although TCP/IP was the standard, it was also necessary to support the higher level Decnet protocols over Ethernet.  For example, scientific users needed Decnet to connect their VAX computers to the Pittsburgh Supercomputing Center.</p>
+ 
+<h3>Building the network</h3>
+
+<p>The network was built by a team led by John Leong.  Major contributions came from Computer Science, Electrical and Computer Engineering, and the Pittsburgh Supercomputing Center.  Don Smith led the IBM group.</p>
+
+<div class ="panel">
+    <img src ="../images/AndrewNetworkWiring.jpg">
+    <p class="caption">The Carnegie Mellon campus network</p> 
+    
+ <p>This greatly oversimplified diagram shows how the campus was wired. Copper wiring was used within the buildings and fiber optics between them. </p>
+</div>
+
+<p>Wiring the campus was seen as a long term investment with the flexibility to adapt to different networking technologies.  As the diagram shows, the wiring has a star shaped topology.  The IBM Cabling System was used within buildings, providing high-quality shielded pairs of copper wire.  They could be used for either Token Ring or Ethernet protocols.  The cables also included telephone circuits.  IBM donated the equipment and contributed half a million dollars towards the costs of installation.  The wires in each building came together in a wiring closet where there were network interfaces for Token Ring and Ethernet.  This provided a Token Ring subnet and an Ethernet subnet in each building.  AppleTalk connections were added later.  By 1990, there were 1,900 Ethernet,
+1,500 Token Ring, and 1,600 AppleTalk ports active.</p>
+
+<p>Leong often described the network as having "an inverted backbone".  One spur of each subnet was to the computer center, where they were all connected to a short backbone Ethernet.  Routers were used to direct the TCP/IP traffic between the subnets.  They were original developed by the Computer Science and Electrical and Computer Engineering Departments and then the software was ported to IBM PC/ATs.  Compared with the nodes on the Dartmouth network, these routers had to handle much higher data rates, but they did not act as terminal concentrators.  Separate servers were used as gateways to higher level protocols, such as AppleTalk.</p>
+
+<p>In practice, there was one major departure from this architecture.  Ethernets that carried Decnet traffic were connected to the backbone via bridges, not routers.  At the cost of extra load on the backbone, the bridges connected these Ethernets with no constraints on the higher level protocols.</p>   
+
+<h3>Connections</h3>
+
+<p>To make full use of the network it was desirable that every computer at Carnegie Mellon used the Internet protocols.  Support for Unix already existed.  The version of Unix that was widely used on campus was the Berkeley Standard Distribution (BSD), which included an open source implementation of TCP/IP.  BSD was developed on Digital VAX computers.  It was standard on Sun workstations and a variant was used by IBM on their Unix workstations.</p> 
+
+<p>For the VAX computers, a member of the Computer Science department ported the Internet protocols to run on the VMS operating system.  It was distributed  for a nominal fee and widely used around the world.  This was an early example of the benefits of an open source distribution.  Numerous users reported bug fixes that were incorporated into subsequent releases.</p>
+
+<p>The first port of TCP/IP to the IBM PC came from MIT.  When we came to deploy it at Carnegie Mellon we encountered a problem.  With the Internet protocols, each IP address is allocated to a specific computer.  When many copies of the communications software were distributed on floppy disk, we needed a dynamic way to assign addresses.  The solution was to extend BootP, a protocol that enabled computers to obtain an IP address from a server.  The modern version of BootP is known as DHCP.</p>
+
+<p>In this way, TCP/IP was available for all the most common types of computer at Carnegie Mellon except the Macintosh.  The development of TCP/IP for Macintoshes over twisted-pair wiring was a splendid example of cooperation among universities.  Carnegie Mellon was one of about eight contributors and at least two start-up companies sold products that came out of this work.  TCP/IP service for Macintoshes over the Andrew network was released at the beginning of 1987.</p>
+
+<p>The initial connection of the Andrew network to the external Internet was through the Pittsburgh Supercomputing Center.  Since the center was one of the hubs on the NSFnet, the campus network was immediately connected to the national network.  Later a direct connection was made that did not go through the supercomputing center.</p>
+
+<h3>Later developments</h3>
+
+<p>In the past thirty years, the network has been continually upgraded.  The major developments have been higher speed and greatly increased capacity, beginning with the replacement of the routers and the inverted backbone by high performance Cisco routers.  As the Internet and the TCP/IP family of protocols became widely accepted the need to support alternative protocols diminished.  Digital and Decnet no longer exist.  Apple uses Ethernet and TCP/IP.  Token Ring never succeeded in the market place and was replaced by higher speed Ethernets.  Wired networks are steadily being replaced by wireless networks.</p>
+
+<p>Most of John Leong's team followed the gold rush to Silicon Valley.  With their practical experience in engineering a state-of-the-art network, several of them  become successful entrepreneurs.</p>
+
+</div>
+
+<div class = "footer" id = "footer-text">
+	<script type="text/javascript">writeFooter();</script>
+</div>
+
+<script type="text/javascript">writeFooter();</script>									<!-- Show footer -->
+
+</body>
+
+</html>
+
+
+
