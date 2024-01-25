@@ -1,0 +1,198 @@
+Date: Tue 16 Sep 86 13:11:57-EDT
+From: Frank da Cruz <SY.FDC@CU20B.COLUMBIA.EDU>
+Subject: Announcing Kermit for DTSS
+To: Info-Kermit@CU20B.COLUMBIA.EDU
+
+A new version of Kermit has been written for GE mainframes running
+the Dartmouth Timesharing System (DTSS) in "Virtual PL/1" (VPL1) by Philip
+Koch of the Dartmouth Kiewit Computer Center.  This is a relatively esoteric
+Kermit since there are not very many DTSS installations, and of them, few
+have VPL1 compilers.  However, brief instructions are included for
+converting to non-virtual PL/1.  There's no manual or help file, but there
+are some comments at the beginning of the source file, which is in
+KER:DTSS.PL1 on CU20B.  Thanks to Philip Crowell of Dartmouth for sending
+the program to us on tape.
+
+---------------------------------
+
+Date: 16 Aug 2011 05:59:06 -0400
+From: Thomas.E.Kurtz@Dartmouth.EDU (Thomas E. Kurtz)
+Subject: About DTSS
+To: fdc@columbia.edu (Frank da Cruz)
+Cc: Marion.Bates@Dartmouth.EDU (Marion Bates),
+X-Scanned-By: MIMEDefang 2.68 on 128.59.28.170
+
+--- Frank da Cruz <fdc@columbia.edu> wrote:
+>  but my original notes say it was for a Honeywell 6000, but I
+>  don't see any references to Honeywell machines in your DTSS
+>  website or the Wikipedia DTSS page, only GE-200 series
+>  machines. What kind of machine was DTSS running on in 1986?
+>
+>  One more question (just our of curiosity): did DTSS ever run
+>  at any sites other than Dartmouth?
+--- end of quote ---
+
+I am not sure of the dates, but perhaps Tom Byrne has a better notes
+or a better recollection...
+
+DTSS ran on the GE-265 hardware from 1964 through about 1969, when it
+became fully operational on the GE-635 hardware.  (The GE-265 consisted of
+a GE-235 central processor plus a Datanet-30 front end; hence, 265.)
+
+The GE-635 was installed in 1966 or early 1967 in the new Kiewit Center
+building.  (The GE-265 version continued to run from the basement of College
+Hall and serve the campus for the next several years.)
+
+The GE-635 hardware was to be used by GE to develop their version of a
+time sharing system (which they called Mark II) during the day; Dartmouth
+students had at the machine at night.  GE and Dartmouth were developing
+competing operating systems, GE for their commercial customers, and Dartmouth
+for its own use.  Dartmouth did develop a BASIC compiler plus additional
+application software for the GE project.  GE had personnel on site -- I've
+forgotten the names.
+
+After about a year, GE finished its development work and turned over its
+shift to its commercial customers.  There was some friction concerning the
+hour at which the hardware got turned over to Dartmouth for its continued
+development work.
+
+I believe this continued until about 1969 when (a) GE had transferred its
+commercial customers to other GE-635 sites, and (b) Dartmouth finally finished
+its initial development of what we now called DTSS.  (DTSS as an acronym was
+patterned after MIT's CTSS = Compatible Time Sharing System, which really was
+just a front end on their batch processing setup with smaller time slices.)
+
+Around 1970 Dartmouth was approached by Admiral Calvert of the Naval Academy
+(Annapolis) with a plan to install a copy of DTSS at that site.  He had
+managed to obtain the necessary hardware on an inter-agency transfer and
+wanted to provide the same computing access to the midshipmen that, as was now
+widely known, we had available to Dartmouth students.  A software maintenance
+contract was signed for $1500 a month -- there was no fee for the software
+itself inasmuch as, having been supported by the NSF, the U. S. government
+had, in some sense, access to the work.  In any case, Dartmouth had no idea,
+at that time, that DTSS had commercial value.  That changed quickly.
+
+Shortly it was decided to form a company, DTSS, incorporated, to determine if
+other organizations might be interested in leasing the DTSS software.  Bob
+Hargraves became its president.  I believe that, eventually, about 15
+companies did lease the software.  (DTSS, Inc., was eventually sold to Met
+Life.)
+
+Somewhere along the line, Honeywell purchased the GE computer hardware
+business, and developed the H-6000 as the successor hardware.  DTSS continued
+to run and serve the campus.
+
+In 1984, I think it was, Dartmouth became an Apple Macintosh university.
+Student and faculty computing began to migrate to personal computers.  Indeed,
+about that time, True BASIC (inc) was formed, and developed BASIC compilers
+for the IBM PC and the Apple Macintosh.  With the increasing use of servers,
+eventually numbering several hundred, the H-6000 fell into disuse and was
+finally retired.
+
+Again, I don't recall the dates.  Tom Byrne would have a better memory about
+things at Dartmouth, while Bob Hargraves would know more about DTSS, Inc.
+
+The thought has occurred ...  It would be a good project for someone to pull
+together the history of Dartmouth computing.  Bits and pieces exist, but no
+overall study has been collected or published.  Time is short; most of the
+student principals are still around, thought retired.  I am thinking of Sidney
+Marshall, Steve Hobbs, etc., etc.  I am also, as well as Bob Hargraves, Tomy
+Byrne, John McGeachie.  Another name is Bob Chambers, hired as a marketing
+person for DTSS, Inc.  Bob stayed in the area and is now in the real estage
+business.  I bought a truck from him when he worked for Miller Auto.  Later,
+he founded Fannie Clac, an organization whose purpose was to provide
+automobiles at a low cost to lower-income folks; this (charitble) work was
+recognized by one of our Presidents (was it Bill Clinton???)  At any rate, he
+is still around and will recall things about DTSS, Inc.
+
+That's about it for now.
+
+Regards,
+
+Tom Kurtz
+
+---------------------------------
+
+Date: Tue, 16 Aug 2011 13:28:46 EDT
+From: Frank da Cruz <fdc@columbia.edu>
+To: Thomas.E.Kurtz@Dartmouth.EDU (Thomas E. Kurtz)
+Subject: Re: Questions about DTSS
+In-Reply-To: <196762803@newprancer.Dartmouth.EDU>
+
+> > --- You wrote:
+> > Also I assume that a PL/1 program written for DTSS would run on any
+> > GE or Honeywell model where DTSS ran, correct?  In other words that
+> > the DTSS version of Kermit is not specific to any particular hardware?
+> > --- end of quote ---
+> 
+> The Dartmouth PL/I was built by Phil Koch, and would have run on any copy
+> of DTSS.  But, of course, DTSS PL/I ran only on GE (later Honeywell)
+> hardware.  I don't know about Kermit.  (What is Kermit?)
+>
+A 30-year software project at Columbia.  Kermit is communication software
+that was almost universally used for file transfer and terminal emulation
+in the 80s and 80s, and is somewhat less used today but definitely not dead.
+Here is the Kermit website:
+
+  http://www.columbia.edu/kermit/
+
+and here is my current project, making every single Kermit program from
+the past 30 years available on the Web:
+
+  http://www.columbia.edu/kermit/archive/
+
+Kermit was probably used at Dartmouth to connect Macintoshes and PCS to
+DTSS as terminals, and to send files back and forth.  Well, make that
+"certainly", since why else would Philip Koch have written a version of
+it for DTSS?  Here it is if you want to take a look:
+
+  http://kermit.columbia.edu/ftp/dtss/dtss.pl1
+
+> Phil Koch went on to become an Apple Fellow, and was instrumental in their
+> conversion from their native Mac code to Next Step.  (Recall that Steve
+> Jobs started at Apple, went to Next Step, and then returned to Apple.)
+>
+I recall!  Columbia was a major purchaser of NeXTs, we bought hundreds of
+them.  They were very nice, too bad it didn't work out.  Our last ones died
+a few years ago.  A lot of people would still be using them if they lasted
+longer.
+
+> Re the Computer Museum.  Several years ago, about ten perhaps, Steve Hobbs
+> preserved a listing of the BASIC compiler that ran on the GE-235 Time
+> Sharing System back in 1964-65 -- it was a listing used by GE just after
+> they adopted the Dartmouth software, but was still exactly like Dartmouth
+> BASIC circa 1964.  (He also resurrected a copy of Steve Garland's Algol
+> compiler for the same hardware.)  A one-time GE programmer was about to
+> throw out his old listings when Steve got word of it somehow.
+> At any rate, I have them now, or at least photocopies of them.
+> 
+> I constructed a simulation of the 1964 DTSS with simulated yellow teletype
+> paper and all.  I first wrote an assembler for the 235.  I then laboriously
+> copied the source code from the BASIC listing, and ran it through the
+> assembler, making sure that an identical binary was produced.  I then wrote
+> an emulation of the GE-235 hardware, and ran the BASIC binary on it.  Thus,
+> it is not an emulation of BASIC; it is really the original BASIC running on
+> emulated hardware!!!  (My assembler and emulator is written is True BASIC,
+> which still runs in a Intel-Windows environment, though no longer on the Mac
+> OSX using the Intel chips.)
+>
+Yes, I read about this in the website, very impressive, almost diabolical!
+
+Frank da Cruz
+
+---------------------------------
+
+NOTE: for more about the DTSS resurrection project, see:
+
+  Dartmouth Time Sharing System... reborn!
+  http://dtss.dartmouth.edu/
+
+And for an overview and history see:
+
+  Dartmouth Time Sharing System
+  http://en.wikipedia.org/wiki/Dartmouth_Time_Sharing_System
+
+The consensus would seem to be that DTSS was the first successful
+large-scale timesharing system.
+
+---------------------------------
